@@ -1,0 +1,2402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Silver Ledger Group Market Terminal</title>
+<style>
+:root {
+  --bg: #0f0f11; --panel-bg: #16161a; --border: #26262b;
+  --accent: #d4af37; --text: #e4e4e7; --text-muted: #71717a;
+  --green: #4ade80; --red: #f87171; --dm-accent: #ea580c;
+  --blue: #60a5fa; --purple: #a78bfa; --yellow: #fbbf24;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── NAV ── */
+.top-nav { background: var(--panel-bg); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 0; }
+.nav-brand { color: var(--accent); font-weight: 700; font-size: 1rem; letter-spacing: -0.02em; padding: 16px 24px 16px 0; border-right: 1px solid var(--border); margin-right: 8px; white-space: nowrap; }
+.nav-tab { padding: 16px 18px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap; }
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-right { margin-left: auto; display: flex; gap: 8px; align-items: center; padding-left: 16px; }
+
+/* ── LAYOUT ── */
+.page { display: none; padding: 24px; flex-direction: column; gap: 20px; }
+.page.active { display: flex; }
+.panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 6px; padding: 20px; }
+.panel-sm { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+@media (max-width: 1100px) { .grid-5 { grid-template-columns: repeat(3,1fr); } .grid-4 { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } .grid-3 { grid-template-columns: 1fr; } }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-gap { display: flex; gap: 8px; align-items: center; }
+.flex-gap > * { min-width: 0; } /* allow flex children (inputs/selects/buttons) to shrink instead of overflowing */
+.input-group { display: flex; align-items: stretch; }
+.input-group input { flex: 1 1 auto; min-width: 0; border-radius: 4px 0 0 4px; border-right: none; }
+.input-group select { flex: 0 1 auto; min-width: 0; border-radius: 0 4px 4px 0; }
+.input-group input:focus, .input-group select:focus { border-color: var(--accent); z-index: 1; }
+
+/* ── TYPE ── */
+h2 { font-size: 0.75rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 10px; }
+.label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.up { color: var(--green); } .down { color: var(--red); } .muted { color: var(--text-muted); }
+
+/* ── BUTTONS ── */
+button { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 6px 12px; font-size: 0.83rem; border-radius: 4px; cursor: pointer; transition: all 0.15s; }
+button:hover { background: rgba(212,175,55,0.1); }
+button.btn-primary { background: var(--accent); color: var(--bg); font-weight: 600; border-color: var(--accent); }
+button.btn-primary:hover { background: #e8c84a; }
+button.btn-ghost { color: var(--text); border-color: var(--border); }
+button.btn-ghost:hover { background: rgba(255,255,255,0.04); border-color: var(--text-muted); }
+button.btn-danger { color: var(--red); border-color: var(--red); }
+button.btn-danger:hover { background: rgba(248,113,113,0.1); }
+button.btn-dm { color: var(--dm-accent); border-color: var(--dm-accent); }
+button.btn-dm:hover { background: rgba(234,88,12,0.1); }
+input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 4px; font-size: 0.87rem; outline: none; }
+input:focus, select:focus { border-color: var(--accent); }
+.file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
+.file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; font-size: 100px; cursor: pointer; width: 100%; height: 100%; }
+
+/* ── TABLE ── */
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th { text-align: left; padding: 10px 8px; color: var(--text-muted); font-weight: 400; border-bottom: 1px solid var(--border); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+td { padding: 11px 8px; border-bottom: 1px solid rgba(38,38,43,0.7); }
+tr:last-child td { border-bottom: none; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text); }
+
+/* ── TICKER ── */
+.ticker-wrap { background: var(--panel-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; padding: 10px 0; }
+.ticker { display: flex; white-space: nowrap; animation: moveTicker 240s linear infinite; width: max-content; }
+.ticker:hover { animation-play-state: paused; }
+.ticker-item { display: inline-flex; align-items: center; gap: 6px; margin-right: 40px; font-size: 0.82rem; letter-spacing: 0.04em; }
+@keyframes moveTicker { 0% { transform: translate3d(0,0,0); } 100% { transform: translate3d(-50%,0,0); } }
+
+/* ── METRIC CARDS ── */
+.metric-card { padding: 14px 16px; }
+.metric-val { font-size: 1.5rem; font-weight: 400; line-height: 1; margin: 4px 0; }
+.metric-sub { font-size: 0.78rem; color: var(--text-muted); }
+
+/* ── GAUGE ── */
+.gauge-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 6px; }
+.gauge-fill { height: 100%; border-radius: 2px; transition: width 0.7s ease; }
+
+/* ── BADGES ── */
+.badge { display: inline-block; font-size: 0.65rem; padding: 2px 6px; border-radius: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.badge-startup  { background: rgba(96,165,250,0.12); color: var(--blue); border: 1px solid rgba(96,165,250,0.25); }
+.badge-growth   { background: rgba(74,222,128,0.12); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
+.badge-mature   { background: rgba(212,175,55,0.10); color: var(--accent); border: 1px solid rgba(212,175,55,0.2); }
+.badge-declining{ background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.25); }
+.badge-bankrupt { background: rgba(248,113,113,0.22); color: var(--red); border: 1px solid var(--red); }
+.badge-sector   { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
+.badge-mood-bullish  { color: var(--green); } .badge-mood-neutral { color: var(--text-muted); } .badge-mood-bearish { color: var(--red); }
+
+/* ── COMPANY DETAIL INLINE ROW ── */
+.detail-row { background: #0c0c10; }
+.detail-row td { padding: 0; }
+.detail-inner { padding: 16px 20px 18px; }
+.company-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 12px 0; }
+.company-stat { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; }
+.company-stat .s-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+.company-stat .s-val { font-size: 1rem; font-weight: 500; }
+
+/* ── NEWS FEED ── */
+.news-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.news-item:last-child { border-bottom: none; }
+.news-source { font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+.news-headline { font-size: 0.88rem; color: var(--text); line-height: 1.4; }
+.news-time { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ── ECON PAGE ── */
+.econ-indicator { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 16px; }
+.econ-indicator .ei-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; }
+.econ-indicator .ei-val { font-size: 1.8rem; font-weight: 300; margin-bottom: 4px; }
+.econ-indicator .ei-desc { font-size: 0.78rem; color: var(--text-muted); }
+
+/* ── DM PANEL ── */
+.dm-border { border-color: rgba(234,88,12,0.4) !important; }
+.event-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+.event-btn { font-size: 0.76rem; padding: 7px 8px; text-align: left; border-color: var(--border); color: var(--text); line-height: 1.3; }
+.event-btn:hover { border-color: var(--dm-accent); color: var(--dm-accent); background: rgba(234,88,12,0.06); }
+.event-btn .ev-desc { display: block; font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ── MISC ── */
+.ledger-scroll { max-height: 240px; overflow-y: auto; }
+canvas { display: block; }
+.stock-chart-row { background: #0d0d10; }
+.stock-chart-row td { padding: 14px 16px; }
+.star-rating { color: var(--accent); letter-spacing: -1px; font-size: 0.85rem; }
+.valuation-tag { font-size: 0.68rem; font-weight: 600; }
+.val-ov { color: var(--red); } .val-uv { color: var(--green); }
+.progress-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <div class="nav-brand">⚖ Silver Ledger Group</div>
+  <div class="nav-tab active" onclick="showPage('market')">Markets</div>
+  <div class="nav-tab" onclick="showPage('economy')">Intelligence</div>
+  <div class="nav-tab" onclick="showPage('economy')" style="display:none;">News Feed</div>
+  <div class="nav-tab" onclick="showPage('portfolio')">Portfolio</div>
+  <div class="nav-tab dm-tab" onclick="showPage('dm')" style="color:var(--dm-accent); border-bottom:2px solid transparent;">👑 DM</div>
+  <div class="nav-right">
+    <span id="timer-display" style="font-size:0.8rem; color:var(--text-muted);">Next: <span id="timer-val" style="color:var(--text);">00:05</span></span>
+    <button id="pause-btn" onclick="togglePause()" style="padding:3px 9px; font-size:0.76rem;">⏸</button>
+    <button onclick="saveManualCheckpoint()" class="btn-ghost" style="font-size:0.76rem; padding:3px 8px;">Save</button>
+    <button onclick="loadManualCheckpoint()" class="btn-danger" style="font-size:0.76rem; padding:3px 8px;">Restore</button>
+    <button onclick="exportToFile()" class="btn-ghost" style="font-size:0.76rem; padding:3px 8px;">Export</button>
+    <div class="file-input-wrapper">
+      <button class="btn-ghost" style="font-size:0.76rem; padding:3px 8px;">Import</button>
+      <input type="file" accept=".json" onchange="importFromFile(event)">
+    </div>
+  </div>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div id="ticker-target" class="ticker"></div>
+</div>
+
+<!-- ════════════════ MARKET PAGE ════════════════ -->
+<div id="page-market" class="page active">
+  <!-- Header metrics -->
+  <div class="grid-5" style="gap:12px;">
+    <div class="panel-sm metric-card">
+      <div class="label">Silver Ledger Index</div>
+      <div id="fmi-val" class="metric-val">+0.00</div>
+      <div id="fmi-change-val" class="metric-sub">0.00% this tick</div>
+    </div>
+    <div class="panel-sm metric-card">
+      <div class="label">Total Market Cap</div>
+      <div id="mcap-val" class="metric-val">--</div>
+      <div class="metric-sub">All listed companies</div>
+    </div>
+    <div class="panel-sm metric-card">
+      <div class="label">Top Mover</div>
+      <div id="gainer-val" class="metric-val up" style="font-size:1rem;">--</div>
+      <div id="loser-val" class="metric-sub down">--</div>
+    </div>
+    <div class="panel-sm metric-card">
+      <div class="label">Market Breadth</div>
+      <div id="breadth-val" class="metric-val" style="font-size:1rem;">--</div>
+      <div id="breadth-desc" class="metric-sub">--</div>
+    </div>
+    <div class="panel-sm metric-card">
+      <div class="label">Market Cycle</div>
+      <div id="cycle-phase-val" class="metric-val" style="font-size:1rem; text-transform:capitalize;">--</div>
+      <div id="cycle-regime-val" class="metric-sub">--</div>
+    </div>
+  </div>
+
+  <!-- Main table + sidebar -->
+  <div class="grid-2">
+    <div class="panel" style="padding: 0; overflow: hidden;">
+      <div style="padding: 16px 20px 0; border-bottom: 1px solid var(--border);">
+        <h2 style="margin-bottom: 0; padding-bottom: 12px;">Core Asset Board</h2>
+      </div>
+      <table id="market-table">
+        <thead>
+          <tr>
+            <th style="width:36px; text-align:center;">Pin</th>
+            <th class="sortable" onclick="handleSort('rank')"># <span id="si-rank"></span></th>
+            <th class="sortable" onclick="handleSort('symbol')">Symbol <span id="si-symbol"></span></th>
+            <th class="sortable" onclick="handleSort('name')">Name <span id="si-name"></span></th>
+            <th class="sortable" onclick="handleSort('sector')">Sector <span id="si-sector"></span></th>
+            <th class="sortable" onclick="handleSort('price')">Price <span id="si-price"></span></th>
+            <th class="sortable" onclick="handleSort('marketCap')">Mkt Cap <span id="si-marketCap"></span></th>
+            <th class="sortable" onclick="handleSort('change')">Change <span id="si-change"></span></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="market-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Portfolio sidebar -->
+    <div class="panel" style="display:flex; flex-direction:column; gap:14px;">
+      <div>
+        <h2>Accounts</h2>
+        <select id="profile-select" style="width:100%; margin-bottom:10px;"></select>
+        <div class="flex-gap">
+          <input type="text" id="profile-input" placeholder="Merchant name" style="flex:1;">
+          <button onclick="addMerchantProfile()">Create</button>
+        </div>
+      </div>
+      <div id="portfolio-view" style="display:none; border-top:1px solid var(--border); padding-top:14px;">
+        <h3 id="active-profile-title" style="color:var(--accent); margin-bottom:10px;">--</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.87rem; margin-bottom:12px;">
+          <div><div class="label">Balance</div><span id="view-cash">0</span> shards</div>
+          <div><div class="label">Net Worth</div><strong id="view-net">0</strong> shards</div>
+          <div><div class="label">Realized P/L</div><span id="view-realized">0</span></div>
+          <div><div class="label">Unrealized P/L</div><span id="view-unrealized">0</span></div>
+        </div>
+        <canvas id="sparkline" width="300" height="60" style="border-bottom:1px solid var(--border); width:100%;"></canvas>
+        <div class="label" style="margin-top:12px; margin-bottom:6px;">Holdings</div>
+        <div id="holdings-box" style="font-size:0.83rem; display:flex; flex-direction:column; gap:4px; margin-bottom:14px;"></div>
+        <div style="border-top:1px solid var(--border); padding-top:12px;">
+          <div class="label" style="margin-bottom:8px;">Order Execution</div>
+          <select id="trade-asset" style="width:100%; margin-bottom:8px;"></select>
+          <div class="flex-gap" style="margin-bottom:6px;">
+            <input type="number" id="trade-amount" min="1" placeholder="Qty" style="width:80px;" onfocus="autoPauseOnTradeInput()">
+            <button class="btn-primary" onclick="submitOrder('buy')" style="flex:1;">Acquire</button>
+            <button onclick="submitOrder('sell')" style="flex:1; color:var(--text); border-color:var(--border);">Liquidate</button>
+          </div>
+          <div class="flex-gap" style="margin-bottom:6px;">
+            <input type="number" id="trade-spend-amount" placeholder="Spend amount" style="flex:1;" onfocus="autoPauseOnTradeInput()">
+            <button onclick="submitOrderMaxSpend()" style="background:#1e3a8a; color:#fff; border-color:#3b82f6; font-size:0.78rem;">Max Buy</button>
+          </div>
+          <label class="muted" style="display:flex; align-items:center; gap:6px; font-size:0.73rem;">
+            <input type="checkbox" id="auto-pause-checkbox" checked> Auto-pause on order entry
+          </label>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:12px; margin-top:8px;">
+          <div class="label" style="margin-bottom:8px;">Automation</div>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:0.84rem;">
+            <div class="flex-between"><span>Limit Buy (drop %):</span><input type="number" id="auto-buy-pct" placeholder="—" style="width:70px; padding:3px 6px;"></div>
+            <div class="flex-between"><span>Take Profit (gain %):</span><input type="number" id="auto-sell-pct" placeholder="—" style="width:70px; padding:3px 6px;"></div>
+            <div id="sell-gain-projection" style="font-size:0.76rem;"></div>
+            <div style="border-top:1px solid var(--border); margin:4px 0 2px; padding-top:6px;" class="muted">Auto-Buy Below Price</div>
+            <div class="flex-gap">
+              <select id="auto-buy-symbol" style="flex:1; padding:3px 6px;"></select>
+              <input type="number" id="auto-buy-price" placeholder="Price" style="width:70px; padding:3px 6px;">
+              <input type="number" id="auto-buy-qty" placeholder="Qty" value="5" style="width:55px; padding:3px 6px;">
+            </div>
+            <button onclick="commitRules()" style="width:100%;">Update Rules</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:20px; border-color:var(--accent); background:linear-gradient(160deg,#1a1810 0%,#16161a 60%); position:relative; overflow:hidden;">
+    <!-- decorative corner marks -->
+    <div style="position:absolute;top:10px;left:10px;width:18px;height:18px;border-top:2px solid var(--accent);border-left:2px solid var(--accent);opacity:0.5;"></div>
+    <div style="position:absolute;top:10px;right:10px;width:18px;height:18px;border-top:2px solid var(--accent);border-right:2px solid var(--accent);opacity:0.5;"></div>
+    <div style="position:absolute;bottom:10px;left:10px;width:18px;height:18px;border-bottom:2px solid var(--accent);border-left:2px solid var(--accent);opacity:0.5;"></div>
+    <div style="position:absolute;bottom:10px;right:10px;width:18px;height:18px;border-bottom:2px solid var(--accent);border-right:2px solid var(--accent);opacity:0.5;"></div>
+    <div style="max-width:680px; margin:0 auto; padding:12px 24px; text-align:center;">
+      <div style="font-size:0.7rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; opacity:0.7;">Est. Year of the Dragon, Third Century</div>
+      <div style="font-size:1.4rem; font-weight:700; letter-spacing:0.06em; color:var(--accent); margin-bottom:4px;">⚖ SILVER LEDGER GROUP</div>
+      <div style="font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-muted); margin-bottom:20px;">"Trust Recorded. Wealth Preserved."</div>
+      <div style="border-top:1px solid rgba(212,175,55,0.2); margin-bottom:18px;"></div>
+      <p style="font-size:0.92rem; color:var(--text); line-height:1.8; margin-bottom:14px;">For over three centuries, the Silver Ledger Group has served as the financial foundation of civilized commerce — providing fair valuations, secure banking, trusted lending, and efficient capital allocation throughout the realm.</p>
+      <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.75; margin-bottom:20px;">Through our Grand Ledger Network, thousands of businesses submit financial reports, trade records, production figures, and commercial forecasts. Our analysts and valuation offices use this information to estimate the fair market value of every publicly chartered enterprise — creating a transparent, orderly marketplace where investors may confidently participate in the realm's growth.</p>
+      <div style="border-top:1px solid rgba(212,175,55,0.2); margin-bottom:18px;"></div>
+      <div style="font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin-bottom:14px; opacity:0.8;">Our Services</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 24px; text-align:left; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.83rem; color:var(--text-muted); padding:4px 0;"><span style="color:var(--accent); font-size:0.6rem; flex-shrink:0;">◆</span>Personal and commercial banking</div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.83rem; color:var(--text-muted); padding:4px 0;"><span style="color:var(--accent); font-size:0.6rem; flex-shrink:0;">◆</span>Merchant and guild financing</div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.83rem; color:var(--text-muted); padding:4px 0;"><span style="color:var(--accent); font-size:0.6rem; flex-shrink:0;">◆</span>Currency exchange and settlement</div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.83rem; color:var(--text-muted); padding:4px 0;"><span style="color:var(--accent); font-size:0.6rem; flex-shrink:0;">◆</span>Corporate share issuance and management</div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.83rem; color:var(--text-muted); padding:4px 0;"><span style="color:var(--accent); font-size:0.6rem; flex-shrink:0;">◆</span>Exchange operations and trade clearing</div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.83rem; color:var(--text-muted); padding:4px 0;"><span style="color:var(--accent); font-size:0.6rem; flex-shrink:0;">◆</span>Wealth preservation and investment</div>
+      </div>
+      <div style="border-top:1px solid rgba(212,175,55,0.2); margin-bottom:18px;"></div>
+      <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.75; font-style:italic;">The Exchange exists for one purpose: connecting capital with opportunity. When investors purchase shares, businesses gain access to the resources required for expansion. When businesses prosper, commerce flourishes. When commerce flourishes, the realm grows wealthier.</p>
+      <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.75; margin-top:12px;">Whether you are a caravan master seeking financing, a guildmaster expanding operations, or an investor pursuing long-term growth — Silver Ledger stands ready to serve.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ ECONOMY PAGE (now: Intelligence Feed) ════════════════ -->
+<div id="page-economy" class="page">
+  <div class="flex-between" style="align-items:flex-start; margin-bottom:16px;">
+    <div>
+      <h2 style="margin-bottom:4px;">Market Intelligence</h2>
+      <p style="font-size:0.82rem; color:var(--text-muted);">Economic conditions, analyst reports, and sector dispatches — updated each market tick.</p>
+    </div>
+  </div>
+  <div class="grid-5" id="econ-indicators" style="margin-bottom:20px;"></div>
+  <div style="display:grid; grid-template-columns: 1fr 1fr 300px; gap:16px; align-items:start;">
+    <div class="panel" style="max-height:600px; display:flex; flex-direction:column;">
+      <h2 style="margin-bottom:10px;">Market Dispatches</h2>
+      <div id="news-feed" style="display:flex; flex-direction:column; overflow-y:auto; flex:1;"></div>
+    </div>
+    <div class="panel" style="max-height:600px; display:flex; flex-direction:column;">
+      <h2 style="margin-bottom:10px;">Analyst Reports</h2>
+      <div id="analyst-feed" style="display:flex; flex-direction:column; overflow-y:auto; flex:1;"></div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div class="panel">
+        <h2>Sector Conditions</h2>
+        <div id="sector-conditions" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ NEWS PAGE (alias — redirects to economy tab) ════════════════ -->
+<div id="page-news" class="page" style="display:none;"></div>
+
+<!-- ════════════════ PORTFOLIO PAGE ════════════════ -->
+<div id="page-portfolio" class="page">
+  <div style="display:grid; grid-template-columns: 1fr 320px; gap:20px; align-items:start;">
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div class="panel">
+        <h2>Portfolio Overview</h2>
+        <select id="portfolio-page-select" style="width:100%; margin-bottom:16px;" onchange="renderPortfolioPage()"></select>
+        <div id="portfolio-page-content"><p class="muted" style="font-size:0.85rem;">Select an account above.</p></div>
+      </div>
+      <div class="panel">
+        <h2>Audit Ledger</h2>
+        <div class="ledger-scroll">
+          <table>
+            <thead><tr><th>Time</th><th>Account</th><th>Action</th><th>Asset</th><th>P/L</th></tr></thead>
+            <tbody id="ledger-target"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div class="panel">
+        <h2>Treasury</h2>
+        <div class="label" style="margin-bottom:6px;">Trade Execution</div>
+        <div id="portfolio-trade-panel" style="display:flex; flex-direction:column; gap:8px; margin-bottom:18px;">
+          <select id="portfolio-trade-asset" style="width:100%;"></select>
+          <div class="flex-gap">
+            <input type="number" id="portfolio-trade-qty" min="1" placeholder="Qty" style="flex:1 1 60px;" onfocus="autoPauseOnTradeInput()">
+            <button class="btn-primary" onclick="portfolioSubmitOrder('buy')" style="flex:1 1 80px;">Acquire</button>
+            <button onclick="portfolioSubmitOrder('sell')" style="flex:1 1 80px; color:var(--text); border-color:var(--border);">Liquidate</button>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:14px;">
+          <div class="flex-between" style="margin-bottom:6px;">
+            <div class="label">Coin Exchange</div>
+            <span class="muted" style="font-size:0.72rem;">1 Nib = 1 cp</span>
+          </div>
+          <div class="input-group" style="margin-bottom:10px;">
+            <input type="number" id="coin-amount" value="1" min="0" step="any" oninput="renderCoinExchange()">
+            <select id="coin-unit" onchange="renderCoinExchange()">
+              <option value="1">Nib (cp)</option>
+              <option value="10" selected>Shard (sp)</option>
+              <option value="100">Dragon (gp)</option>
+              <option value="200">Taol (2gp)</option>
+              <option value="1000">Sun (pp)</option>
+              <option value="5000">Harbor Moon (5pp)</option>
+            </select>
+          </div>
+          <div id="coin-exchange-results" style="display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; font-size:0.83rem;"></div>
+          <p class="muted" style="font-size:0.72rem; margin-top:8px;">Taol and Harbor Moon notes are not generally accepted outside Waterdeep.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ DM PAGE ════════════════ -->
+<div id="page-dm" class="page">
+  <div class="panel dm-border">
+    <div class="flex-between" style="margin-bottom:16px;">
+      <h2 style="color:var(--dm-accent); margin-bottom:0;">👑 Dungeon Master Control Console</h2>
+      <div class="flex-gap">
+        <span class="label">Tick: <span id="dm-tick-count" style="color:var(--text);">0</span></span>
+        <span id="dm-cycle-info" class="label" style="color:var(--text-muted); font-size:0.75rem;"></span>
+        <button class="btn-dm" onclick="applyDMTimerModifications()" style="font-size:0.78rem;">Sync Clock</button>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns: 200px 1fr; gap:24px;">
+      <div>
+        <div class="label" style="margin-bottom:10px;">Master Clock</div>
+        <div style="display:flex; flex-direction:column; gap:8px; font-size:0.84rem;">
+          <div class="flex-between"><span>Current countdown:</span><input type="number" id="dm-timer-current" style="width:60px; padding:3px 6px;" value="5" min="0"></div>
+          <div class="flex-between"><span>Default interval:</span><input type="number" id="dm-timer-max" style="width:60px; padding:3px 6px;" value="5" min="2"></div>
+        </div>
+        <div class="label" style="margin:14px 0 8px;">Force Cycle Phase</div>
+        <div style="display:flex; flex-direction:column; gap:4px; font-size:0.78rem;">
+          <button onclick="forceCyclePhase('expansion')" style="text-align:left; padding:3px 7px; color:var(--green); border-color:var(--green);">📈 Expansion</button>
+          <button onclick="forceCyclePhase('boom')" style="text-align:left; padding:3px 7px; color:var(--yellow); border-color:var(--yellow);">🚀 Boom</button>
+          <button onclick="forceCyclePhase('slowdown')" style="text-align:left; padding:3px 7px; color:var(--text-muted); border-color:var(--border);">📉 Slowdown</button>
+          <button onclick="forceCyclePhase('recession')" style="text-align:left; padding:3px 7px; color:var(--red); border-color:var(--red);">🔴 Recession</button>
+          <button onclick="forceCyclePhase('recovery')" style="text-align:left; padding:3px 7px; color:var(--blue); border-color:var(--blue);">🌱 Recovery</button>
+        </div>
+        <div class="label" style="margin:14px 0 8px;">Algorithmic Controls</div>
+        <div style="display:flex; flex-direction:column; gap:4px; font-size:0.78rem;">
+          <button onclick="triggerRandomShock()" style="text-align:left; padding:3px 7px; color:var(--dm-accent); border-color:var(--dm-accent);">⚡ Random Market Shock</button>
+          <label style="display:flex; align-items:center; gap:6px; margin-top:4px; cursor:pointer;">
+            <input type="checkbox" id="dm-auto-shocks" onchange="toggleAutoShocks(this.checked)" style="width:auto;">
+            <span>Auto shocks <span class="muted">(~⅛ news frequency)</span></span>
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; margin-top:4px; cursor:pointer;">
+            <input type="checkbox" id="dm-dividends" onchange="toggleDividends(this.checked)" style="width:auto;">
+            <span>Dividends <span class="muted">(2% every 1000 ticks)</span></span>
+          </label>
+        </div>
+        <div class="label" style="margin:14px 0 8px;">Economy Dials</div>
+        <div style="display:flex; flex-direction:column; gap:4px; font-size:0.78rem;">
+          <div class="flex-between"><span>Econ Growth</span><div class="flex-gap" style="gap:3px;"><button onclick="nudgeEconomy('growth',0.03)" style="padding:1px 7px; color:var(--green); border-color:var(--green); font-size:0.75rem;">+</button><button onclick="nudgeEconomy('growth',-0.03)" style="padding:1px 7px; color:var(--red); border-color:var(--red); font-size:0.75rem;">−</button></div></div>
+          <div class="flex-between"><span>Inflation</span><div class="flex-gap" style="gap:3px;"><button onclick="nudgeEconomy('inflation',0.02)" style="padding:1px 7px; color:var(--green); border-color:var(--green); font-size:0.75rem;">+</button><button onclick="nudgeEconomy('inflation',-0.02)" style="padding:1px 7px; color:var(--red); border-color:var(--red); font-size:0.75rem;">−</button></div></div>
+          <div class="flex-between"><span>Interest Rates</span><div class="flex-gap" style="gap:3px;"><button onclick="nudgeEconomy('interestRates',0.02)" style="padding:1px 7px; color:var(--green); border-color:var(--green); font-size:0.75rem;">+</button><button onclick="nudgeEconomy('interestRates',-0.02)" style="padding:1px 7px; color:var(--red); border-color:var(--red); font-size:0.75rem;">−</button></div></div>
+          <div class="flex-between"><span>Global Trade</span><div class="flex-gap" style="gap:3px;"><button onclick="nudgeEconomy('globalTrade',0.03)" style="padding:1px 7px; color:var(--green); border-color:var(--green); font-size:0.75rem;">+</button><button onclick="nudgeEconomy('globalTrade',-0.03)" style="padding:1px 7px; color:var(--red); border-color:var(--red); font-size:0.75rem;">−</button></div></div>
+          <div class="flex-between"><span>Pol. Stability</span><div class="flex-gap" style="gap:3px;"><button onclick="nudgeEconomy('stability',0.03)" style="padding:1px 7px; color:var(--green); border-color:var(--green); font-size:0.75rem;">+</button><button onclick="nudgeEconomy('stability',-0.03)" style="padding:1px 7px; color:var(--red); border-color:var(--red); font-size:0.75rem;">−</button></div></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <!-- Sector controls -->
+        <div>
+          <div class="label" style="margin-bottom:8px;">Sector Sentiment Injection</div>
+          <div style="max-height:140px; overflow-y:auto; border:1px solid var(--border); border-radius:4px; background:var(--bg);">
+            <table style="font-size:0.8rem;"><thead><tr style="background:rgba(0,0,0,0.3); position:sticky; top:0; z-index:5;"><th style="padding:6px 8px;">Sector</th><th>Sentiment</th><th>Confidence</th><th style="text-align:right; padding-right:8px;">Controls</th></tr></thead><tbody id="dm-sector-body"></tbody></table>
+          </div>
+        </div>
+        <!-- Stock controls -->
+        <div>
+          <div class="label" style="margin-bottom:8px;">Company Fundamentals Injection (S=Sentiment, R=Revenue)</div>
+          <div style="max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:4px; background:var(--bg);">
+            <table style="font-size:0.8rem;"><thead><tr style="background:rgba(0,0,0,0.3); position:sticky; top:0; z-index:5;"><th style="padding:6px 8px;">Asset</th><th>Price</th><th>Analyst Target</th><th>Mood</th><th style="text-align:right; padding-right:8px;">Inject</th></tr></thead><tbody id="dm-market-body"></tbody></table>
+          </div>
+        </div>
+        <!-- Events -->
+        <div>
+          <div class="label" style="margin-bottom:6px;">Narrative World Events</div>
+          <div class="event-grid" id="event-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel dm-border" style="margin-top:20px; background:linear-gradient(160deg,#180e08 0%,#16161a 60%); position:relative; overflow:hidden;">
+    <div style="position:absolute;top:10px;left:10px;width:18px;height:18px;border-top:2px solid var(--dm-accent);border-left:2px solid var(--dm-accent);opacity:0.5;"></div>
+    <div style="position:absolute;top:10px;right:10px;width:18px;height:18px;border-top:2px solid var(--dm-accent);border-right:2px solid var(--dm-accent);opacity:0.5;"></div>
+    <div style="position:absolute;bottom:10px;left:10px;width:18px;height:18px;border-bottom:2px solid var(--dm-accent);border-left:2px solid var(--dm-accent);opacity:0.5;"></div>
+    <div style="position:absolute;bottom:10px;right:10px;width:18px;height:18px;border-bottom:2px solid var(--dm-accent);border-right:2px solid var(--dm-accent);opacity:0.5;"></div>
+    <div style="max-width:680px; margin:0 auto; padding:12px 24px;">
+      <div style="text-align:center; margin-bottom:18px;">
+        <div style="font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--dm-accent); opacity:0.7; margin-bottom:8px;">— RESTRICTED — SENIOR STAFF ONLY —</div>
+        <div style="font-size:1.2rem; font-weight:700; letter-spacing:0.07em; color:var(--dm-accent);">THE TRUTH OF THE SILVER LEDGER MARKET</div>
+        <div style="border-top:1px solid rgba(234,88,12,0.25); margin-top:14px;"></div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; gap:14px; align-items:flex-start;">
+          <div style="flex-shrink:0; width:3px; background:var(--dm-accent); border-radius:2px; opacity:0.6; align-self:stretch; min-height:20px;"></div>
+          <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.75; margin:0;">Most citizens believe that stock prices are determined by merchants buying and selling shares. This is only partially true.</p>
+        </div>
+        <div style="display:flex; gap:14px; align-items:flex-start;">
+          <div style="flex-shrink:0; width:3px; background:var(--dm-accent); border-radius:2px; opacity:0.6; align-self:stretch; min-height:20px;"></div>
+          <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.75; margin:0;">The Silver Ledger Group operates the Grand Ledger — a continent-spanning financial network that receives reports from guilds, companies, banks, merchants, governments, and trade houses. Every shipment, loan, dividend, contract, production report, and financial statement contributes to the Ledger's calculations.</p>
+        </div>
+        <div style="display:flex; gap:14px; align-items:flex-start;">
+          <div style="flex-shrink:0; width:3px; background:var(--dm-accent); border-radius:2px; opacity:0.6; align-self:stretch; min-height:20px;"></div>
+          <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.75; margin:0;">Using this information, the Grand Ledger continuously estimates the value of every publicly chartered company. These estimates become the prices displayed on the Exchange.</p>
+        </div>
+        <div style="display:flex; gap:14px; align-items:flex-start;">
+          <div style="flex-shrink:0; width:3px; background:var(--dm-accent); border-radius:2px; opacity:0.6; align-self:stretch; min-height:20px;"></div>
+          <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.75; margin:0;">Trading activity can influence prices, but the market is primarily driven by changing business conditions, economic trends, world events, and the financial health of companies. As new information enters the Ledger, valuations rise or fall accordingly.</p>
+        </div>
+        <div style="border-top:1px solid rgba(234,88,12,0.2); padding-top:14px; display:flex; gap:14px; align-items:flex-start;">
+          <div style="flex-shrink:0; width:3px; background:var(--red); border-radius:2px; opacity:0.7; align-self:stretch; min-height:20px;"></div>
+          <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.75; margin:0;">To the public, the Market appears to be a bustling exchange of investors. In reality, it is a massive valuation system maintained by Silver Ledger accountants, economists, diviners, and enchanted calculation engines.</p>
+        </div>
+        <div style="display:flex; gap:14px; align-items:flex-start;">
+          <div style="flex-shrink:0; width:3px; background:var(--red); border-radius:2px; opacity:0.7; align-self:stretch; min-height:20px;"></div>
+          <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.75; margin:0;">Only senior bankers, guild leaders, wealthy merchants, and government officials understand the true scope of the system. Most citizens simply trust that "the Ledger knows."</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATIC DATA
+// ═══════════════════════════════════════════════════════════
+const SECTORS = ['Financial Services','Mining and Manufacturing','Technology and Innovation','Defense and Security','Guilds','Shipping and Logistics','Agriculture and Foods','Consumer Goods','Luxury and Retail','Adventuring','Arcane Services','Hospitality'];
+const SECTOR_META = {
+  'Financial Services':        {type:'financial',  iS:-0.1,rS:1.2, tS:0.3, stS:0.8},
+  'Mining and Manufacturing':  {type:'cyclical',   iS:0.3, rS:-0.4,tS:0.9, stS:0.4},
+  'Technology and Innovation': {type:'growth',     iS:-0.4,rS:-1.0,tS:0.2, stS:0.3},
+  'Defense and Security':      {type:'defensive',  iS:0.1, rS:0.0, tS:-0.2,stS:-0.6},
+  'Guilds':                    {type:'defensive',  iS:0.0, rS:-0.1,tS:0.3, stS:0.2},
+  'Shipping and Logistics':    {type:'cyclical',   iS:0.2, rS:-0.3,tS:1.2, stS:0.3},
+  'Agriculture and Foods':     {type:'defensive',  iS:0.6, rS:-0.1,tS:0.6, stS:0.1},
+  'Consumer Goods':            {type:'defensive',  iS:-0.3,rS:-0.2,tS:0.4, stS:0.2},
+  'Luxury and Retail':         {type:'cyclical',   iS:-0.7,rS:-0.5,tS:0.5, stS:0.4},
+  'Adventuring':               {type:'speculative',iS:-0.2,rS:-0.8,tS:0.1, stS:-0.2},
+  'Arcane Services':           {type:'growth',     iS:-0.5,rS:-0.9,tS:0.1, stS:0.2},
+  'Hospitality':               {type:'cyclical',   iS:-0.3,rS:-0.3,tS:0.5, stS:0.3},
+};
+const ASSET_TEMPLATES = [
+  // Financial Services
+  {s:'SLGR',n:'Silver Ledger Group',        b:250,v:5, sec:'Financial Services',       shares:800},
+  {s:'DRGT',n:'Dragonguard Trust Co.',      b:100,v:6, sec:'Financial Services',       shares:700},
+  {s:'VSFN',n:'Vaultspire Financial',       b:167,v:5, sec:'Financial Services',       shares:750},
+  // Mining and Manufacturing
+  {s:'IRNB',n:'Ironbeard Mining Co.',       b:72, v:9, sec:'Mining and Manufacturing', shares:600},
+  {s:'WDGM',n:'Waterdeep Miners Guild',     b:65, v:7, sec:'Mining and Manufacturing', shares:500},
+  {s:'STSP',n:'Steelspire Manufacturing',   b:90, v:8, sec:'Mining and Manufacturing', shares:550},
+  // Technology and Innovation
+  {s:'THMK',n:'Thaumatek Systems',          b:163,v:16,sec:'Technology and Innovation',shares:400},
+  {s:'ASRC',n:'ArcanoSynth Solutions',      b:153,v:14,sec:'Technology and Innovation',shares:350},
+  {s:'CLHG',n:'Crystal Logic Holdings',     b:167,v:11,sec:'Technology and Innovation',shares:450},
+  {s:'ECRF',n:'Ethercore Refineries',       b:144,v:13,sec:'Technology and Innovation',shares:330},
+  // Defense and Security
+  {s:'SHLD',n:'Shieldmaiden Defense Ltd.',  b:82, v:6, sec:'Defense and Security',     shares:500},
+  {s:'CWSG',n:'City Watch Workers Guild',   b:78, v:5, sec:'Defense and Security',     shares:480},
+  {s:'RBSC',n:'Red Banner Security',        b:88, v:10,sec:'Defense and Security',     shares:300},
+  // Guilds (consolidated: pre-existing guild names + new)
+  {s:'TMGT',n:'Twinmast Merchant Guild',    b:134,v:6, sec:'Guilds',                   shares:340},
+  {s:'STON',n:'Stonemasons Guild',          b:32, v:4, sec:'Guilds',                   shares:620},
+  {s:'SAIL',n:'Sailmakers Consortium',      b:47, v:4, sec:'Guilds',                   shares:580},
+  {s:'VINT',n:"Vintners Guild Cooperative", b:61, v:5, sec:'Guilds',                   shares:540},
+  {s:'SMTH',n:'Smiths & Metalworkers Guild',b:92, v:7, sec:'Guilds',                   shares:460},
+  {s:'CGMA',n:'Carpenters Guild Mutual',    b:141,v:3, sec:'Guilds',                   shares:500},
+  {s:'INNK',n:'Innkeepers Consortium',      b:164,v:4, sec:'Guilds',                   shares:420},
+  // Shipping and Logistics
+  {s:'MTFC',n:"Mariner's Trust Freight",    b:150,v:17,sec:'Shipping and Logistics',   shares:380},
+  {s:'CKSL',n:'Crate & Kraken Shipping',    b:133,v:18,sec:'Shipping and Logistics',   shares:360},
+  {s:'UNLG',n:'United Logistics',           b:111,v:15,sec:'Shipping and Logistics',   shares:370},
+  // Agriculture and Foods
+  {s:'GRAC',n:'Greenroot Agri Combine',     b:60, v:5, sec:'Agriculture and Foods',    shares:600},
+  {s:'MSHV',n:'Mosswell Harvest Corp.',     b:55, v:6, sec:'Agriculture and Foods',    shares:550},
+  {s:'HHPV',n:'Hearth & Herb Provisions',   b:50, v:7, sec:'Agriculture and Foods',    shares:500},
+  {s:'FRBW',n:'Feralbrew Distilleries',     b:68, v:9, sec:'Agriculture and Foods',    shares:320},
+  {s:'SVLH',n:'Silverhorn Livestock',       b:62, v:8, sec:'Agriculture and Foods',    shares:460},
+  // Consumer Goods
+  {s:'VNMC',n:'Vanguard Mercantile',        b:74, v:12,sec:'Consumer Goods',           shares:420},
+  // Luxury and Retail
+  {s:'CRSJ',n:"Crownleaf Silks & Jewels",   b:197,v:6, sec:'Luxury and Retail',        shares:280},
+  {s:'GWCX',n:'Gilded Whisper Curiosities', b:185,v:11,sec:'Luxury and Retail',        shares:250},
+  {s:'OPAG',n:'Opaline Atelier Group',      b:129,v:8, sec:'Luxury and Retail',        shares:290},
+  // Adventuring
+  {s:'DNVR',n:'Delvers Consortium',         b:5,  v:18,sec:'Adventuring',              shares:900},
+  {s:'TRSR',n:'Treasureseekers Ltd.',       b:24, v:17,sec:'Adventuring',              shares:700},
+  {s:'GDEX',n:'Griffon Expeditionary',      b:42, v:14,sec:'Adventuring',              shares:550},
+  {s:'BRNV',n:'Blackstaff Ventures',        b:87, v:12,sec:'Adventuring',              shares:400},
+  {s:'MRKS',n:'Moonstar Risk Services',     b:134,v:9, sec:'Adventuring',              shares:320},
+  // Arcane Services
+  {s:'TPOR',n:'Teleportation Circle Network',b:28,v:16,sec:'Arcane Services',          shares:600},
+  {s:'ENCH',n:'Enchanters Collective',      b:74, v:13,sec:'Arcane Services',          shares:450},
+  {s:'MYST',n:'Mystra Arcane Holdings',     b:121,v:9, sec:'Arcane Services',          shares:380},
+  {s:'BLKT',n:'Blackstaff Tower Services',  b:188,v:5, sec:'Arcane Services',          shares:300},
+  // Hospitality
+  {s:'DRGN',n:"Dragon's Flagon Hospitality",b:14, v:9, sec:'Hospitality',              shares:800},
+  {s:'YPRT',n:'Yawning Portal Holdings',    b:39, v:9, sec:'Hospitality',              shares:650},
+  // Mercenary
+  {s:'VIGL',n:'Vigilant Blades Co.',        b:26, v:13,sec:'Defense and Security',                shares:500},
+  {s:'SWSD',n:'Swordshield Security',       b:58, v:9, sec:'Defense and Security',                shares:400},
+  {s:'GRYW',n:'Gryphon Watch Contractors',  b:143,v:9, sec:'Defense and Security',                shares:320},
+  // Consumer Goods
+  {s:'SCRL',n:'Scrollworks Publishing',     b:22, v:9, sec:'Consumer Goods',            shares:700},
+  // Shipping and Logistics
+  {s:'CHND',n:'Chandlery of Waterdeep',     b:71, v:5, sec:'Shipping and Logistics',    shares:520},
+  // Technology and Innovation
+  {s:'AETH',n:'Aetherglass Instruments',    b:109,v:14,sec:'Technology and Innovation', shares:380},
+  // Luxury and Retail
+  {s:'NBLH',n:'Noble House Holdings',       b:197,v:3, sec:'Luxury and Retail',         shares:260},
+];
+
+// News system sources and templates
+const NEWS_SOURCES = {
+  economy:   ['The Trade & Commerce Review','The Investor\'s Herald','The Waterdeep Ledger'],
+  sector:    ['The City Financial Record','The Investor\'s Herald','The Guild Chronicle','The Waterdeep Ledger'],
+  shipping:  ['The Dock Ward Gazette','The Waterdeep Ledger'],
+  luxury:    ['The North Ward Review','The City Financial Record'],
+  agri:      ['The Merchant\'s Bulletin','The Dock Ward Gazette'],
+  civic:     ['The Civic Report','The Waterdeep Ledger'],
+  company:   ['The Guild Chronicle','The City Financial Record','The Waterdeep Ledger','The Merchant\'s Bulletin'],
+  analyst:   ['Blackstaff Capital Research','Open Lord Analytics','Deepwater Market Intelligence'],
+  arcane:    ['The Arcane Observer','The Waterdeep Ledger'],
+  adventure: ['The Adventurers\' Post','The Guild Chronicle'],
+  guild:     ['The Guild Chronicle','The Merchant\'s Bulletin'],
+  mercenary: ['The City Financial Record','The Adventurers\' Post']
+};
+const ANALYST_ACTIONS = ['Upgrades','Downgrades','Initiates Coverage on','Reiterates Outperform on','Raises Target for','Lowers Target for'];
+
+const WORLD_EVENTS = [
+  {id:'war',      label:'⚔️ War Outbreak',    desc:'Regional conflict erupts',
+   effects:{'Defense and Security':{sent:0.25,conf:0.2},'Shipping and Logistics':{sent:-0.2},'Agriculture and Foods':{sent:0.1},stability:-0.15}},
+  {id:'peace',    label:'🕊️ Peace Treaty',   desc:'Conflict resolves peacefully',
+   effects:{'Defense and Security':{sent:-0.15},'Shipping and Logistics':{sent:0.15,conf:0.1},stability:0.12}},
+  {id:'gold',     label:'⛏️ Gold Discovery', desc:'Rich ore vein found beneath city',
+   effects:{'Mining and Manufacturing':{rev:0.08,sent:0.2},'Financial Services':{sent:0.1}}},
+  {id:'embargo',  label:'🚫 Trade Embargo',   desc:'Major port sealed by decree',
+   effects:{'Shipping and Logistics':{rev:-0.12,sent:-0.25},'Mining and Manufacturing':{rev:-0.06},globalTrade:-0.15}},
+  {id:'tech',     label:'✨ Arcane Breakthrough',desc:'Revolutionary spell-tech unveiled',
+   effects:{'Technology and Innovation':{rev:0.10,sent:0.3}}},
+  {id:'plague',   label:'🦠 City Plague',     desc:'Disease spreads through the wards',
+   effects:{'Agriculture and Foods':{sent:0.1},'Luxury and Retail':{sent:-0.2},'Shipping and Logistics':{sent:-0.1},growth:-0.05}},
+  {id:'harvest',  label:'🌾 Harvest Failure', desc:'Drought and blight ruin yields',
+   effects:{'Agriculture and Foods':{rev:-0.10,sent:-0.2},'Consumer Goods':{sent:-0.1},inflation:0.025}},
+  {id:'bankrun',  label:'🏦 Banking Panic',   desc:'Depositors flood guild vaults',
+   effects:{'Financial Services':{sent:-0.3,conf:-0.2},growth:-0.04,stability:-0.1}},
+  {id:'royal',    label:'👑 Royal Celebration',desc:'Crown commands lavish festivities',
+   effects:{'Luxury and Retail':{rev:0.08,sent:0.2},'Agriculture and Foods':{rev:0.04}}},
+  {id:'pirates',  label:'🏴‍☠️ Pirate Raids',   desc:'Sea lanes disrupted by corsairs',
+   effects:{'Shipping and Logistics':{rev:-0.09,sent:-0.2},'Defense and Security':{sent:0.1}}},
+  {id:'recession',label:'📉 Recession',       desc:'Economic contraction grips the realm',
+   effects:{growth:-0.10,'Luxury and Retail':{sent:-0.25},'Technology and Innovation':{sent:-0.15},'Agriculture and Foods':{sent:0.1}}},
+  {id:'dungeon',   label:'🗡️ Major Dungeon Cleared', desc:'Adventurers clear a notorious dungeon, bringing back vast wealth',
+   effects:{'Adventuring':{rev:0.12,sent:0.25,conf:0.15},'Financial Services':{sent:0.05},'Luxury and Retail':{sent:0.06}}},
+  {id:'rift',      label:'🌀 Planar Rift Outbreak',  desc:'An unstable rift tears open near the city',
+   effects:{'Adventuring':{sent:0.20,rev:0.08},'Arcane Services':{sent:0.15,rev:0.06},'Hospitality':{sent:-0.12},'Shipping and Logistics':{sent:-0.08}}},
+  {id:'spellplague',label:'💀 Spellplague Scare',    desc:'Wild magic storms threaten the city',
+   effects:{'Arcane Services':{sent:-0.22,rev:-0.08},'Technology and Innovation':{sent:-0.10},'Defense and Security':{sent:0.12},stability:-0.10}},
+  {id:'arcaneboom', label:'✨ Arcane Commerce Boom', desc:'New teleportation wards cut merchant travel times in half',
+   effects:{'Arcane Services':{rev:0.10,sent:0.20},'Shipping and Logistics':{sent:-0.10},'Guilds':{sent:0.05},globalTrade:0.08}},
+  {id:'guildriot',  label:'✊ Guild Riots',          desc:'Dissatisfied guild workers take to the streets',
+   effects:{'Guilds':{sent:-0.25,rev:-0.08},'Mining and Manufacturing':{sent:-0.10},'Defense and Security':{sent:0.12},stability:-0.12}},
+  {id:'guildcharter',label:'📜 Grand Guild Charter', desc:'The Lords grant expanded powers to the trade guilds',
+   effects:{'Guilds':{rev:0.09,sent:0.20,conf:0.12},'Financial Services':{sent:0.06},globalTrade:0.05}},
+  {id:'tourismboom', label:'🍺 Tourism Boom',        desc:'A major festival draws visitors from across Faerûn',
+   effects:{'Hospitality':{rev:0.14,sent:0.25},'Consumer Goods':{sent:0.10},'Luxury and Retail':{sent:0.08},'Guilds':{sent:0.05}}},
+  {id:'mercenarybid',label:'⚔️ Major Mercenary Contract',desc:'A noble house awards a massive security contract',
+   effects:{'Defense and Security':{rev:0.12,sent:0.22},'Defense and Security':{sent:0.08},stability:0.05}},
+  {id:'adventfail',  label:'💀 Famous Party Wiped',  desc:'A renowned adventuring company is lost in the Underdark',
+   effects:{'Adventuring':{sent:-0.28,rev:-0.08},'Hospitality':{sent:-0.06},stability:-0.04}},
+  {id:'mania',    label:'📈 Market Mania',    desc:'Investor optimism reaches fever pitch',
+   effects:{growth:0.05,globalSentiment:0.15,stability:0.05}},
+  {id:'dragon',   label:'🐉 Dragon Sighting', desc:'A wyrm is spotted circling the trade roads',
+   effects:{'Defense and Security':{sent:0.2,conf:0.15},'Shipping and Logistics':{sent:-0.18,rev:-0.05},'Financial Services':{sent:0.05},stability:-0.08}},
+  {id:'festival', label:'🎉 Grand Trade Festival', desc:'Merchant houses host a citywide festival',
+   effects:{'Luxury and Retail':{rev:0.07,sent:0.2},'Consumer Goods':{sent:0.12},'Agriculture and Foods':{rev:0.05,sent:0.1},globalTrade:0.05}},
+  {id:'undead',   label:'💀 Undead Incursion', desc:'Restless dead rise near the outlying farmsteads',
+   effects:{'Agriculture and Foods':{sent:-0.2,rev:-0.06},'Defense and Security':{sent:0.18,conf:0.12},stability:-0.1}},
+  {id:'traderoute',label:'🗺️ New Trade Route Charted', desc:'A merchant consortium opens a safer overland passage',
+   effects:{'Shipping and Logistics':{rev:0.09,sent:0.2,conf:0.1},'Mining and Manufacturing':{sent:0.05},globalTrade:0.12}},
+  {id:'devalue',  label:'💰 Currency Devaluation', desc:'The Crown debases the coinage to fund its coffers',
+   effects:{'Financial Services':{sent:-0.18,conf:-0.1},'Luxury and Retail':{sent:-0.1},inflation:0.015,stability:-0.05}},
+  {id:'strike',   label:'✊ Guild Workers\' Strike', desc:'Laborers down tools across the manufactories',
+   effects:{'Mining and Manufacturing':{rev:-0.10,sent:-0.22},'Shipping and Logistics':{sent:-0.1},'Consumer Goods':{sent:-0.08},growth:-0.03}},
+  {id:'succession',label:'👑 Noble Succession Crisis', desc:'A disputed inheritance unsettles the ruling court',
+   effects:{'Financial Services':{sent:-0.15,conf:-0.1},'Defense and Security':{sent:0.12},stability:-0.15}},
+  {id:'storms',   label:'⛈️ Storm Season', desc:'Violent storms batter the coastal shipping lanes',
+   effects:{'Shipping and Logistics':{rev:-0.08,sent:-0.18},'Agriculture and Foods':{sent:-0.08},globalTrade:-0.06}},
+  {id:'bounty',   label:'🗡️ Adventurers\' Guild Bounty Boom', desc:'A surge of monster-hunting contracts floods the boards',
+   effects:{'Defense and Security':{rev:0.08,sent:0.18},'Consumer Goods':{sent:0.1},'Luxury and Retail':{sent:0.06}}},
+  {id:'mining',   label:'⚒️ Deep Gnome Mining Innovation', desc:'New excavation techniques dramatically boost ore yields',
+   effects:{'Mining and Manufacturing':{rev:0.10,sent:0.22},'Technology and Innovation':{sent:0.06},'Financial Services':{sent:0.04}}},
+  {id:'caravan',  label:'🐫 Caravan Massacre', desc:'A merchant caravan is destroyed en route to the city',
+   effects:{'Shipping and Logistics':{sent:-0.22,rev:-0.08},'Defense and Security':{sent:0.1,conf:0.08},'Luxury and Retail':{sent:-0.06},stability:-0.06}},
+  {id:'festivalbank',label:'🏛️ Banking Charter Reform', desc:'New royal charters streamline guild banking practices',
+   effects:{'Financial Services':{rev:0.08,sent:0.18,conf:0.12},globalTrade:0.04}},
+  {id:'magicitem',label:'🔮 Enchanted Artifact Auction', desc:'A legendary artifact draws bidders from across Faerûn',
+   effects:{'Luxury and Retail':{rev:0.12,sent:0.25},'Technology and Innovation':{sent:0.08},'Financial Services':{sent:0.05}}},
+  {id:'famine',   label:'🌾 Regional Famine', desc:'Failed harvests across the heartlands drive food prices skyward',
+   effects:{'Agriculture and Foods':{rev:-0.14,sent:-0.25},'Consumer Goods':{sent:-0.1},inflation:0.02,stability:-0.08}}
+];
+
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const STORAGE_KEY = 'slgr_algo_v1_market';
+const SNAPSHOT_KEY = 'slgr_algo_v1_snapshot';
+
+let state = {
+  // Economy: inflation/rates in 0-1 scale but displayed as 0-10% (cosmetic drift, lightly nudges FMI)
+  economy: {growth:0.0, inflation:0.025, interestRates:0.035, globalTrade:0.5, stability:0.6},
+  sectors: {},   // per-sector: offset (sustained, decaying), interest, confidence (cosmetic)
+  stocks: [],
+  market: {fmi:100, lastFmi:100, countdown:5, maxCountdown:5, momentum:0, fmiHistory:[100], phase:'expansion', regime:'neutral'},
+  profiles: [], activeIdx:-1, ledger:[], tickCount:0,
+  news: [],      // generated news items
+  analysts: []   // analyst reports
+};
+let openGraphs = {}, isPaused = false, currentSort = {key:'rank',asc:true};
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+function clamp(v,lo,hi){return Math.min(hi,Math.max(lo,v));}
+function rand(lo,hi){return lo+Math.random()*(hi-lo);}
+
+function initSectors(){
+  SECTORS.forEach(sec=>{
+    if(!state.sectors[sec]) state.sectors[sec]={
+      offset: 0,              // sustained price-multiplier offset (decays)
+      interest: rand(0.4,0.6),// cosmetic, drives sector conditions page
+      confidence: rand(0.4,0.6)
+    };
+  });
+}
+
+function buildStock(t){
+  return {
+    symbol:t.s, name:t.n, base:t.b, price:t.b,
+    vol:t.v, sector:t.sec, sharesOutstanding:t.shares,
+    growthOffset:0,  // sustained DM-injected offset (decays)
+    volNoise:0,      // smoothed per-tick volatility component (mean-reverting)
+    history:[t.b,t.b], change:0, pinned:false, rank:0, prevRank:0,
+    marketCap:t.b*t.shares, news:[]
+  };
+}
+
+function buildNewState(){
+  state.economy = {growth:0.0, inflation:0.025, interestRates:0.035, globalTrade:0.5, stability:0.6};
+  state.sectors = {};
+  initSectors();
+  state.stocks  = ASSET_TEMPLATES.map(buildStock);
+  state.market  = {fmi:100, lastFmi:100, countdown:5, maxCountdown:5, momentum:0, fmiHistory:[100], phase:'expansion', regime:'neutral'};
+  state.profiles=[]; state.ledger=[]; state.activeIdx=-1; state.tickCount=0;
+  state.news=[]; state.analysts=[];
+  state.settings={autoShocks:false,dividendsEnabled:true};
+  updateRanks();
+}
+
+function migrateState(){
+  if(!state.economy) state.economy={growth:0,inflation:0.025,interestRates:0.035,globalTrade:0.5,stability:0.6};
+  if(!state.sectors || !state.sectors[SECTORS[0]] || state.sectors[SECTORS[0]].offset===undefined){
+    const old=state.sectors||{};
+    state.sectors={};
+    initSectors();
+    SECTORS.forEach(sec=>{
+      if(old[sec]){
+        state.sectors[sec].offset = old[sec].sentimentOffset || old[sec].offset || 0;
+      }
+    });
+  }
+  if(!state.tickCount) state.tickCount=0;
+  if(!state.news) state.news=[];
+  if(!state.analysts) state.analysts=[];
+  if(!state.settings) state.settings={autoShocks:false,dividendsEnabled:true};
+  if(state.settings.dividendsEnabled===undefined) state.settings.dividendsEnabled=true;
+  // Migrate stocks moved to the Guilds sector
+  const toGuilds=['TMGT','STON','SAIL','VINT','SMTH','CGMA','INNK'];
+  state.stocks.forEach(s=>{
+    if(toGuilds.includes(s.symbol)&&s.sector!=='Guilds') s.sector='Guilds';
+    if(s.sector==='Mercenary') s.sector='Defense and Security';
+    if(s.volNoise===undefined) s.volNoise=0;
+  });
+  if(!state.market.fmiHistory) state.market.fmiHistory=[state.market.fmi||100];
+  if(!state.market.phase) state.market.phase='expansion';
+  if(!state.market.regime) state.market.regime='neutral';
+  if(!state.market.maxCountdown) state.market.maxCountdown=5;
+  state.stocks.forEach(s=>{
+    if(s.growthOffset===undefined) s.growthOffset = s.revenueBoostOffset || 0;
+    if(s.volNoise===undefined) s.volNoise = 0;
+    if(!s.sharesOutstanding) s.sharesOutstanding=400;
+    if(!s.marketCap) s.marketCap=s.price*s.sharesOutstanding;
+    if(!s.news) s.news=[];
+    if(s.pinned===undefined) s.pinned=false;
+  });
+  updateRanks();
+}
+
+function initExchange(){
+  const cache=localStorage.getItem(STORAGE_KEY);
+  if(cache){
+    try{
+      const p=JSON.parse(cache);
+      if(!p||!p.stocks||p.stocks.length===0){buildNewState();}
+      else{state=p; migrateState(); injectNewStocks();}
+    }catch(e){buildNewState();}
+  } else {buildNewState();}
+
+  document.getElementById('dm-timer-max').value=state.market.maxCountdown||5;
+  document.getElementById('dm-timer-current').value=state.market.countdown||5;
+  buildEventGrid();
+  refreshUI();
+  beginClock();
+}
+
+function injectNewStocks(){
+  // Add any stocks from ASSET_TEMPLATES that don't yet exist in the saved state
+  const existing=new Set(state.stocks.map(s=>s.symbol));
+  ASSET_TEMPLATES.forEach(t=>{
+    if(!existing.has(t.s)) state.stocks.push(buildStock(t));
+  });
+  // Also ensure all new sectors are initialised
+  initSectors();
+  updateRanks();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SIMULATION ENGINE (algorithmic — FMI random walk + offsets)
+// ═══════════════════════════════════════════════════════════
+function processMarketTick(){
+  state.market.lastFmi=state.market.fmi;
+  state.tickCount=(state.tickCount||0)+1;
+
+  driftEconomy();
+  driftSectorConditions();
+
+  // Core algorithmic index formula: cyclical bias + momentum carry-over + mean reversion to 100
+  const cycleBias=(Math.random()-0.502)*3.5;
+  const momentumFactor=(state.market.momentum||0)*0.04;
+  const meanReversion=(100-state.market.fmi)*0.015;
+  // Small narrative tie-in so the Economy dials have a felt effect on the index
+  const econBias=(state.economy.growth||0)*1.4;
+  state.market.fmi=Math.max(15,+(state.market.fmi+cycleBias+momentumFactor+meanReversion+econBias).toFixed(2));
+
+  if(!state.market.fmiHistory)state.market.fmiHistory=[];
+  state.market.fmiHistory.push(state.market.fmi);
+  if(state.market.fmiHistory.length>40)state.market.fmiHistory.shift();
+
+  let netUps=0, netDowns=0;
+  const decayFactor=0.85; // controls how fast DM-injected offsets normalize (higher = more sustained)
+
+  state.stocks.forEach(stock=>{
+    // Smoothed volatility: drift toward a new random target each tick instead of an
+    // independent jump every time — keeps the overall vol band but stops the
+    // "swing 18% one way, swing 18% the other way next tick" whiplash.
+    const sectorOffset=(state.sectors[stock.sector]||{}).offset||0;
+    const assetOffset=stock.growthOffset||0;
+    const mood=sectorOffset+assetOffset;
+    // Mood gives the volatility target a gentle directional lean — a bullish
+    // stock is a little more likely to roll positive ticks and vice versa,
+    // on top of the static price-level effect of the offsets themselves.
+    // Anti-snowball: if price has already run hard in the direction mood is
+    // pushing, the bias fades out — it can kick off a move but won't keep
+    // piling onto one that's already extended.
+    const deviation=(stock.price||stock.base)/stock.base-1; // how far price already sits from its base
+    const runningWithMood = (mood>0 && deviation>0) || (mood<0 && deviation<0);
+    const snowballDamp = runningWithMood ? clamp(1-Math.abs(deviation)/0.4, 0, 1) : 1;
+    const moodBias=clamp(mood*stock.vol*1.5,-stock.vol*0.5,stock.vol*0.5)*snowballDamp;
+    const volTarget=clamp((Math.random()*(stock.vol*2))-stock.vol+moodBias,-stock.vol,stock.vol);
+    stock.volNoise=clamp((stock.volNoise||0)+(volTarget-stock.volNoise)*0.35,-stock.vol,stock.vol);
+    const randBetweenVol=stock.volNoise;
+
+    const combinedSustainedShiftMultiplier=1+sectorOffset+assetOffset;
+
+    let calculatedPrice=stock.base*(state.market.fmi/100)*((100+randBetweenVol)/100)*combinedSustainedShiftMultiplier;
+
+    const overvaluationThreshold=stock.base*2.5;
+    if(calculatedPrice>overvaluationThreshold){
+      const overshoot=calculatedPrice-overvaluationThreshold;
+      calculatedPrice=overvaluationThreshold+(overshoot*0.2);
+    }
+
+    const old=stock.price||stock.base;
+    stock.price=Math.max(0.5,+calculatedPrice.toFixed(2));
+    stock.change=+(((stock.price-old)/old)*100).toFixed(2);
+    stock.marketCap=stock.price*stock.sharesOutstanding;
+
+    recordHistory(stock);
+
+    if(stock.change>0)netUps++;
+    else if(stock.change<0)netDowns++;
+
+    // Sustained adjustments decay back toward normal
+    stock.growthOffset=+(stock.growthOffset*decayFactor).toFixed(4);
+    if(Math.abs(stock.growthOffset)<0.005)stock.growthOffset=0;
+  });
+
+  // Decay sector offsets back toward normalization
+  SECTORS.forEach(sec=>{
+    const sd=state.sectors[sec];
+    sd.offset=+(sd.offset*decayFactor).toFixed(4);
+    if(Math.abs(sd.offset)<0.005)sd.offset=0;
+  });
+
+  state.market.momentum=netUps-netDowns;
+  updateCyclePhase();
+
+  generateNews();
+  maybeFireAutoShock();
+  payDividendsIfDue();
+  updateRanks();
+  evaluateAutomation();
+  appendHistorySnapshots();
+  commitToStorage();
+  refreshUI();
+
+  for(let sym in openGraphs){if(openGraphs[sym])drawInlineDetailChart(sym);}
+}
+
+function recordHistory(s){
+  if(!s.history)s.history=[];
+  s.history.push(s.price);
+  if(s.history.length>60)s.history.shift();
+}
+
+// ─── ECONOMY & SECTOR DRIFT (simple algorithmic random walks) ───
+function driftEconomy(){
+  const e=state.economy;
+  e.growth        = clamp(e.growth        + (0    - e.growth       )*0.03 + (Math.random()-0.5)*0.012, -0.40, 0.40);
+  // Inflation targets a realistic ~2.5% with a modest band (0-8%), and drifts
+  // slowly — real economies don't swing from 0% to 15% inflation casually.
+  e.inflation     = clamp(e.inflation     + (0.025 - e.inflation    )*0.04 + (Math.random()-0.5)*0.0025, 0.00, 0.08);
+  e.interestRates = clamp(e.interestRates + (0.035 - e.interestRates)*0.03 + (Math.random()-0.5)*0.003,  0.00, 0.12);
+  e.globalTrade   = clamp(e.globalTrade   + (0.5  - e.globalTrade  )*0.03 + (Math.random()-0.5)*0.012,  0.00, 1.00);
+  e.stability     = clamp(e.stability     + (0.6  - e.stability    )*0.03 + (Math.random()-0.5)*0.010,  0.00, 1.00);
+}
+
+function driftSectorConditions(){
+  SECTORS.forEach(sec=>{
+    const sd=state.sectors[sec];
+    sd.interest   = clamp(sd.interest   + (0.5-sd.interest  )*0.03 + (Math.random()-0.5)*0.02 + sd.offset*0.3, 0.05, 0.95);
+    sd.confidence = clamp(sd.confidence + (0.5-sd.confidence)*0.03 + (Math.random()-0.5)*0.02 + sd.offset*0.3, 0.05, 0.95);
+  });
+}
+
+// ─── CYCLE PHASE (derived from recent FMI trend — purely descriptive) ───
+function updateCyclePhase(){
+  const h=state.market.fmiHistory||[];
+  const fmi=state.market.fmi;
+  const slope = h.length>=6 ? (h[h.length-1]-h[h.length-6])/5 : 0;
+  let phase;
+  if(slope>0.6)       phase = fmi>105 ? 'boom'      : 'recovery';
+  else if(slope>0.05) phase = 'expansion';
+  else if(slope<-0.6) phase = fmi<95  ? 'recession' : 'slowdown';
+  else if(slope<-0.05)phase = 'slowdown';
+  else                 phase = fmi>=100 ? 'expansion' : 'recovery';
+  state.market.phase=phase;
+  const mom=state.market.momentum||0;
+  state.market.regime = mom>4 ? 'bull' : mom<-4 ? 'bear' : 'neutral';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NEWS GENERATION
+// ═══════════════════════════════════════════════════════════
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function newsTime(){const n=new Date();return n.toTimeString().split(' ')[0].substring(0,5);}
+
+const NEWS_TEMPLATES = {
+  economy_up:   e=>pick(NEWS_SOURCES.economy)+`: Economic Growth ${pick(['Accelerates','Exceeds Expectations','Gains Momentum','Strengthens Broadly','Surprises to the Upside','Picks Up Pace Across Districts','Shows Resilience Amid Global Headwinds'])}`,
+  economy_down: e=>pick(NEWS_SOURCES.economy)+`: Economic Growth ${pick(['Slows','Falls Short of Forecasts','Weakens Further','Loses Momentum','Stalls Amid Rising Costs','Disappoints Council Forecasters','Contracts for Second Consecutive Season'])}`,
+  inflation_up: e=>pick(NEWS_SOURCES.economy)+`: Inflation ${pick(['Rises','Remains Elevated','Exceeds Expectations','Continues to Build','Ticks Higher on Food and Fuel Costs','Outpaces Wage Growth, Officials Warn','Pressures Household Budgets'])}`,
+  inflation_down:e=>pick(NEWS_SOURCES.economy)+`: Inflation ${pick(['Falls','Shows Signs of Cooling','Continues to Moderate','Eases Slightly','Returns Toward Target Range','Slows for Third Straight Month','Cools as Supply Chains Normalize'])}`,
+  rates_up:     e=>pick(NEWS_SOURCES.economy)+`: Central Bank ${pick(['Signals Further Tightening','Raises Benchmark Rates','Maintains Elevated Policy','Warns of Prolonged High Rates','Cites Inflation Risks in Latest Statement'])}`,
+  rates_down:   e=>pick(NEWS_SOURCES.economy)+`: Central Bank ${pick(['Signals Policy Easing','Cuts Rates','Shifts to Accommodative Stance','Moves to Support Lending','Eases Reserve Requirements for Guild Banks'])}`,
+  trade_up:     e=>pick(NEWS_SOURCES.shipping)+`: ${pick(['Harbor Traffic Reaches Seasonal High','Trade Volumes Rise Across Northern Routes','Freight Rates Rise Following Merchant Demand','Port Activity Strengthens','New Caravan Routes Boost Overland Commerce','Customs Houses Report Record Throughput'])}`,
+  trade_down:   e=>pick(NEWS_SOURCES.shipping)+`: ${pick(['Commerce Slows Across Key Routes','Delays Reported Along Southern Trade Routes','Freight Demand Softens','Harbor Activity Declines','Toll Disputes Snarl Overland Trade','Merchant Houses Report Falling Order Volumes'])}`,
+  stability_up: e=>pick(NEWS_SOURCES.civic)+`: ${pick(['Business Confidence Improves Following Stability Gains','Council Reports Favorable Conditions','Political Stability Supports Investment','Crime Rates Fall, Boosting Merchant Confidence','New Trade Charters Streamline Commerce'])}`,
+  stability_down:e=>pick(NEWS_SOURCES.civic)+`: ${pick(['Political Uncertainty Weighs on Markets','Council Disputes Slow Commerce','Civic Unrest Dampens Investor Confidence','Border Tensions Rattle Merchant Houses','Tax Dispute Stalls Council Business'])}`,
+  sector_up:    (sec)=>pick(NEWS_SOURCES.sector)+`: ${sec} Sector ${pick(['Leads Market Gains','Attracts New Investment','Reports Strong Demand','Outperforms Expectations','Draws Crowds of New Investors','Posts Its Best Week in Months','Becomes Talk of the Exchange Floor'])}`,
+  sector_down:  (sec)=>pick(NEWS_SOURCES.sector)+`: ${sec} Sector ${pick(['Faces Investor Pressure','Shows Signs of Weakness','Underperforms Broader Market','Experiences Reduced Interest','Struggles to Find Footing','Sees Capital Flee to Other Sectors','Posts Worst Week in Months'])}`,
+  company_up:   (s)=>pick(NEWS_SOURCES.company)+`: ${s.name} ${pick(['Reports Strong Quarter','Expands Operations','Raises Outlook','Attracts Investor Interest','Gains Market Share','Announces New Contracts','Surprises Analysts With Strong Results','Sees Surge in Demand','Opens New Trading Posts'])}`,
+  company_down: (s)=>pick(NEWS_SOURCES.company)+`: ${s.name} ${pick(['Misses Growth Expectations','Faces Margin Pressure','Lowers Outlook','Reports Declining Activity','Loses Key Contract to Rival','Cuts Production Targets','Struggles With Rising Costs','Disappoints Investors With Latest Figures'])}`,
+  company_debt_up: (s)=>pick(NEWS_SOURCES.company)+`: ${s.name} ${pick(['Strengthens Balance Sheet','Reduces Outstanding Debt','Improves Credit Position','Pays Down Loans Ahead of Schedule','Secures Favorable Refinancing Terms'])}`,
+  company_debt_down:(s)=>pick(NEWS_SOURCES.company)+`: ${s.name} ${pick(['Faces Rising Debt Burden','Balance Sheet Pressures Mount','Secures Additional Financing to Cover Costs','Draws Scrutiny Over Borrowing Levels','Delays Payments to Suppliers'])}`,
+  lc_startup:   (s)=>pick(NEWS_SOURCES.company)+`: ${s.name} ${pick(['Expands Into New Markets','Secures Growth Financing','Reports First Profitable Quarter','Hires Aggressively to Meet Demand'])}`,
+  lc_growth:    (s)=>pick(NEWS_SOURCES.company)+`: ${s.name} ${pick(['Continues Rapid Expansion','Increases Hiring Across Divisions','Gains Market Share in Core Sector','Opens New Facilities to Meet Demand'])}`,
+  lc_mature:    (s)=>pick(NEWS_SOURCES.company)+`: ${s.name} ${pick(['Focuses on Operational Efficiency','Reports Stable Results','Maintains Market Leadership','Announces Modest Dividend Increase'])}`,
+  lc_declining: (s)=>pick(NEWS_SOURCES.company)+`: ${s.name} ${pick(['Announces Restructuring Plan','Faces Revenue Pressure','Seeks Operational Improvements','Closes Underperforming Locations'])}`,
+};
+
+// ─── REACTIVE "TRADING FLOOR" CHATTER ───
+// Short blurbs that react to a stock's current price action, sector mood, and
+// valuation vs. analyst targets — without exposing the underlying offset numbers.
+const CHATTER_TEMPLATES = {
+  valuation_over: (s)=>pick([
+    `Floor traders mutter that ${s.symbol} "has gotten ahead of itself" at current prices.`,
+    `Some desks are quietly trimming ${s.symbol} positions, calling it stretched.`,
+    `"Priced for perfection" is the phrase making the rounds about ${s.name}.`,
+    `"Who in the hells is still buying ${s.symbol} up here?" one trader grumbled.`,
+    `${s.name} is starting to look like a "greater fool" trade, a few cynics say.`,
+    `A junior clerk called ${s.symbol} "stupidly expensive" — and was told to lower his voice.`,
+    `Short-sellers are circling ${s.symbol}, smelling a correction.`,
+    `"It's a fine company, but the price has run well ahead of the books," one analyst sighed.`,
+    `Old hands on the floor are taking profits in ${s.symbol} "while the gettin's good."`,
+    `${s.symbol} keeps climbing, but more than one merchant has muttered "this can't last."`,
+    `"Holy hell, who keeps bidding this thing up?" someone shouted across the ${s.symbol} pit.`,
+    `${s.name} at these prices? Seasoned traders are just shaking their heads.`,
+    `"I wouldn't touch ${s.symbol} with a ten-foot pole up here," a veteran broker muttered.`,
+    `${s.symbol} has gone full mania — nobody can justify it on paper anymore.`,
+    `"Someone's going to be left holding the bag on ${s.symbol}," a risk desk warned quietly.`,
+    `The bulls on ${s.symbol} are starting to sound more religious than analytical.`,
+    `${s.name} is up again. The floor doesn't understand it. Nobody does.`,
+    `"It's not a market anymore, it's a prayer meeting around ${s.symbol}," one cynic said.`,
+    `A senior broker called ${s.symbol} "weapons-grade overvalued" under his breath.`,
+    `${s.symbol} climbs again. The bears are running out of arguments — and patience.`
+  ]),
+  valuation_under: (s)=>pick([
+    `A few sharp-eyed merchants are calling ${s.symbol} "a bargain at these levels."`,
+    `Whispers on the floor suggest ${s.name} is "due for a correction — upward."`,
+    `Bargain hunters have started circling ${s.symbol}, brokers report.`,
+    `"Gods, ${s.symbol} is cheap right now," one trader was overheard saying near the ledgers.`,
+    `${s.name} keeps getting sold off for no damn good reason, a contrarian grumbled.`,
+    `A handful of patient investors are quietly accumulating ${s.symbol} at these prices.`,
+    `"The fundamentals haven't changed, only the price has," one broker said of ${s.symbol}.`,
+    `Some on the floor think ${s.name} is "the most unloved name in the district right now."`,
+    `${s.symbol} is at a discount that's drawing attention from the patient money.`,
+    `"Buy it and forget about it" is the quiet advice circulating about ${s.symbol}.`,
+    `"Holy shit, look at ${s.symbol}'s price — that's a steal," someone said, not quietly enough.`,
+    `${s.name} is being absolutely given away right now, and most of the floor is ignoring it.`,
+    `"We're burning money not buying ${s.symbol} at these levels," one frustrated analyst said.`,
+    `${s.symbol} is so beaten down it's almost embarrassing. Smart coin is watching closely.`,
+    `"If ${s.symbol} goes any lower I'm buying it with both hands," a broker told his clerk.`,
+    `${s.name} is hated, ignored, and cheap. That combination rarely lasts.`,
+    `"This is a gift," one trader muttered at the ${s.symbol} board, fingers drumming.`,
+    `The crowd has given up on ${s.symbol}. The contrarians have not.`,
+    `${s.symbol} is so out of fashion it's practically antique — and some see opportunity in that.`,
+    `"Someone's going to wake up and realize ${s.symbol} is absurdly cheap," a broker predicted.`
+  ]),
+  valuation_fair: (s)=>pick([
+    `${s.symbol} is trading "right about where it should be," according to floor chatter.`,
+    `Little excitement around ${s.name} today — analysts call it fairly priced.`,
+    `${s.symbol} continues to trade in line with consensus expectations.`,
+    `Nothing much to report on ${s.symbol} — steady as she goes.`,
+    `"Boring, but boring is fine," one broker shrugged about ${s.name}.`,
+    `${s.symbol} sits comfortably within its usual trading band today.`,
+    `Traders are largely ignoring ${s.symbol} in favor of louder names.`,
+    `${s.name} remains a "park your coin here and forget it" sort of holding.`,
+    `No strong opinions on ${s.symbol} on the floor today — it is what it is.`,
+    `${s.symbol} is neither cheap nor dear — just sitting there, doing its job.`,
+    `"The market is being tame today," one broker yawned, staring at the ${s.symbol} board.`,
+    `${s.symbol} — nothing to get excited about. Nothing to panic about. Just… there.`,
+    `"If ${s.symbol} were a tavern meal it'd be the house stew. Reliable. Unexciting," a clerk said.`,
+    `The ${s.symbol} desk is the quietest spot on the floor today. No news is fine news.`,
+    `${s.name} sits at fair value, and the floor has collectively decided to care about something else.`,
+    `"You could set your clock by ${s.symbol}," one trader joked. Not a compliment, exactly.`,
+    `${s.symbol} is priced in. Nothing left to argue about. The floor moves on.`,
+    `"I've had more exciting conversations with my ledger than I've had watching ${s.symbol} today."`,
+    `${s.name} remains exactly where the analysts said it would be. Boring is a feature, sometimes.`,
+    `${s.symbol} — trading in a band, going nowhere fast, and the floor is fine with that.`
+  ]),
+  momentum_up: (s)=>pick([
+    `${s.symbol} has caught a bid — several sessions of gains now.`,
+    `Momentum traders are piling into ${s.name} after its recent run.`,
+    `${s.symbol} is "on a roll" according to one Guild Chronicle stringer.`,
+    `"Don't ask questions, just ride it" is the mood among ${s.symbol} bulls.`,
+    `${s.name} has been on an absolute tear lately — even the skeptics are impressed.`,
+    `Every dip in ${s.symbol} keeps getting bought up almost immediately.`,
+    `${s.symbol} is the talk of the trading floor this week — and not in a quiet way.`,
+    `"It just keeps going up, damn it," one short-seller groaned about ${s.symbol}.`,
+    `Latecomers are scrambling to get a piece of ${s.name}'s rally.`,
+    `${s.symbol} has been printing fresh highs and the bulls are crowing about it.`,
+    `"Holy fuck, ${s.symbol} just will not stop," a trader exclaimed, checking the board twice.`,
+    `${s.name} is running like it owes someone coin. The floor is trying to keep up.`,
+    `"Get in or get out of the way," the ${s.symbol} desk has been saying all week.`,
+    `${s.symbol} broke through resistance again. Bears are capitulating, one by one.`,
+    `"I've never seen ${s.symbol} move like this," an old-timer admitted. He looked pleased.`,
+    `The ${s.name} bulls are insufferable right now. They're also right.`,
+    `${s.symbol} up again. The shorts are quiet. Very, very quiet.`,
+    `"At this rate ${s.symbol} is going to need a bigger board," one wag quipped.`,
+    `Coin is chasing ${s.symbol} like rats chasing a baker's cart.`,
+    `${s.name}'s momentum is the only thing the floor wants to talk about this session.`
+  ]),
+  momentum_down: (s)=>pick([
+    `${s.symbol} has slid for several sessions running, with no clear bottom in sight.`,
+    `Sellers continue to outnumber buyers in ${s.name}, brokers note.`,
+    `${s.symbol} is "stuck in a rut" per floor chatter this week.`,
+    `"Every damn time it looks like it's bottomed, it isn't," one holder complained.`,
+    `${s.name} keeps grinding lower, and patience is wearing thin.`,
+    `${s.symbol} can't seem to catch a bid no matter what the rest of the market does.`,
+    `Some are calling ${s.symbol} "dead money" until further notice.`,
+    `${s.name} is testing the resolve of even its most loyal holders.`,
+    `"At this rate we'll be giving it away," one exasperated trader joked about ${s.symbol}.`,
+    `${s.symbol} continues its slow bleed, with little sign of buyers stepping in.`,
+    `"Shit, we are burning money here," one holder of ${s.symbol} said flatly to no one.`,
+    `${s.name} is down again. The floor has stopped being surprised by it.`,
+    `"Someone put ${s.symbol} out of its misery," a frustrated trader said under his breath.`,
+    `${s.symbol} dropped. Again. The silence on the floor said everything.`,
+    `"I've seen slower bleeds, but not many," a broker muttered, watching ${s.symbol}.`,
+    `${s.name} bulls are getting quieter by the session. The bears don't gloat — they're tired too.`,
+    `"Why is ${s.symbol} still going down? What the hell?" — overheard near the east board.`,
+    `${s.symbol} has stopped making sense. It just goes lower. The floor shrugs and sells.`,
+    `"I need a drink," said the man managing the ${s.name} desk. It was early morning.`,
+    `${s.symbol} is giving back everything it earned and then some. The longs are not happy.`
+  ]),
+  momentum_flat: (s)=>pick([
+    `${s.symbol} has been remarkably quiet — traders call it "dead water."`,
+    `Little net movement in ${s.name} despite the broader market's swings.`,
+    `${s.symbol} continues to trade sideways, drawing little attention.`,
+    `"Watching ${s.symbol} is like watching grass grow," one bored clerk complained.`,
+    `${s.name} hasn't done much of anything lately, for better or worse.`,
+    `${s.symbol} seems content to drift along without much conviction either way.`,
+    `Volume in ${s.symbol} has dried up — even the gossips have moved on.`,
+    `${s.name} is in a holding pattern, waiting for some reason to move.`,
+    `Nobody on the floor seems to have a strong view on ${s.symbol} right now.`,
+    `${s.symbol} continues to mark time, neither up nor down in any meaningful way.`,
+    `"The market is being tame today," someone said, staring at the ${s.symbol} board specifically.`,
+    `${s.name} has flatlined. Not dead — just very, very bored.`,
+    `"${s.symbol} is in a coma," a desk runner observed. Nobody disagreed.`,
+    `The ${s.symbol} pit is the quietest corner of the floor. Has been for a while.`,
+    `"Even the rumours about ${s.symbol} have been boring lately," a gossip admitted.`,
+    `${s.name} is doing nothing with great commitment. Consistent, at least.`,
+    `${s.symbol} — sideways yesterday, sideways today, presumably sideways tomorrow.`,
+    `"I could nail my open position to the wall and it'd look the same," a ${s.symbol} trader sighed.`,
+    `The ${s.name} board hasn't budged in what feels like forever. The clerks have taken up cards.`,
+    `"Somebody do something," one impatient trader said at the ${s.symbol} board. Silence.`
+  ]),
+  sector_favorable: (s)=>pick([
+    `The mood around ${s.sector} remains upbeat — money keeps flowing in.`,
+    `Brokers describe ${s.sector} as "the place to be" this season.`,
+    `Investor appetite for ${s.sector} names like ${s.symbol} stays strong.`,
+    `"Everyone and their cousin wants ${s.sector} exposure right now," one broker laughed.`,
+    `${s.sector} is the sector everyone's bragging about at the tavern these days.`,
+    `Coin keeps pouring into ${s.sector}, and ${s.symbol} is riding that wave.`,
+    `Even cautious investors are warming up to ${s.sector} of late.`,
+    `${s.sector} has become the darling of the merchant houses this quarter.`,
+    `"You'd be a damn fool not to have some ${s.sector} exposure right now."`,
+    `Confidence in ${s.sector} remains high — ${s.symbol} is benefiting from the tailwind.`,
+    `${s.sector} is on fire right now. Every name in it is getting looked at.`,
+    `"Everyone's piling into ${s.sector} and frankly I don't blame them," a broker said.`,
+    `${s.sector} is this season's golden child. The floor knows it. The coin flows.`,
+    `"If you're not in ${s.sector} right now, what are you doing?" — heard near the east boards.`,
+    `${s.sector} just keeps delivering. The floor has stopped being surprised. They're just grateful.`,
+    `Merchant houses that ignored ${s.sector} last quarter are scrambling to catch up.`,
+    `"${s.sector} is printing coin for everyone right now," a cheerful broker announced.`,
+    `The ${s.sector} boom has legs. At least, that's what everyone holding ${s.symbol} keeps saying.`,
+    `${s.sector} sentiment is through the roof. Rational or not, the floor doesn't care.`,
+    `"I'd put my grandmother's savings in ${s.sector} right now," a trader said. Charitably interpreted.`
+  ]),
+  sector_pressured: (s)=>pick([
+    `${s.sector} has fallen out of favor with merchant houses of late.`,
+    `Capital continues to drift away from ${s.sector}, brokers report.`,
+    `Few are eager to add to ${s.sector} positions right now, including ${s.symbol}.`,
+    `"${s.sector}? Hard pass," one investor said bluntly at the exchange today.`,
+    `${s.sector} has become something of a punching bag on the floor lately.`,
+    `Sentiment toward ${s.sector} remains sour — ${s.symbol} hasn't escaped it.`,
+    `"It's been a rough damn quarter for anything in ${s.sector}," one broker admitted.`,
+    `Investors are quietly rotating out of ${s.sector} and into safer ground.`,
+    `${s.sector} keeps finding new ways to disappoint, traders grumble.`,
+    `Confidence in ${s.sector} has taken a beating, dragging on names like ${s.symbol}.`,
+    `"${s.sector} is cursed right now, I swear to the gods," a frustrated trader vented.`,
+    `Every ${s.sector} holding on the floor is bleeding. Nobody wants to say it out loud.`,
+    `"What did ${s.sector} do to deserve this?" — genuinely asked, nobody had an answer.`,
+    `${s.sector} is the sector people apologise for owning at dinner parties right now.`,
+    `The floor has collectively decided ${s.sector} is someone else's problem.`,
+    `"I'm getting out of ${s.sector} and I don't care what the analysts say," one holder said.`,
+    `${s.sector} was fine three months ago. Now it can't buy a bid. Nobody knows why.`,
+    `"If ${s.sector} falls any further, someone's going to hold a funeral for it," a broker joked. Barely.`,
+    `${s.sector} is being treated like bad fish on the floor — everyone's moving away from it.`,
+    `"Just… avoid ${s.sector} until the smell goes away," became unofficial floor advice.`
+  ]),
+  sector_neutral: (s)=>pick([
+    `${s.sector} is drawing a fairly even split of buyers and sellers.`,
+    `No strong consensus on ${s.sector} at the moment — sentiment is mixed.`,
+    `Trading in ${s.sector} names like ${s.symbol} has been unremarkable lately.`,
+    `${s.sector} is neither hot nor cold — just sort of there, traders say.`,
+    `Opinions on ${s.sector} are all over the map right now.`,
+    `${s.sector} hasn't given the floor much to talk about either way.`,
+    `"I don't hate it, I don't love it," one broker shrugged about ${s.sector}.`,
+    `${s.sector} continues to muddle along without a clear narrative.`,
+    `Nobody's in a hurry to buy or sell ${s.sector} names like ${s.symbol} today.`,
+    `${s.sector} remains a wait-and-see sector for most of the floor.`,
+    `"${s.sector} is just… fine. Not great, not awful. Fine," a broker said, with zero enthusiasm.`,
+    `The ${s.sector} camp is split. Half think it's about to run. Half think it's about to roll over.`,
+    `${s.sector} is the shrug emoji of the trading floor right now.`,
+    `"Ask me about ${s.sector} in a month," one broker said, and walked away.`,
+    `${s.sector} is in purgatory — going nowhere, convicted of nothing.`,
+    `Floor veterans are neutral on ${s.sector}. That itself is a kind of statement.`,
+    `"${s.sector} is the sort of sector you forget you own until the ledger summary," a holder said.`,
+    `There are two firmly held views on ${s.sector} right now, and they are complete opposites.`,
+    `${s.sector} is doing what it always does: disappointing the optimists and surprising the pessimists.`,
+    `"If ${s.sector} had a personality it would apologise for taking up your time," someone quipped.`
+  ]),
+  historical_up: (s)=>pick([
+    `Old hands note ${s.symbol} has come a long way from where it was trading not long ago.`,
+    `"You should've seen where ${s.symbol} was sitting a while back," one veteran mused.`,
+    `${s.symbol} has put real distance between itself and its recent lows.`,
+    `Compared to where it's been recently, ${s.symbol} looks like a different stock.`,
+    `Anyone watching ${s.symbol} for a while can see how far it's climbed.`,
+    `${s.name} has quietly built up a solid gain since its last rough patch.`,
+    `"Remember when ${s.symbol} was down in the dirt? Look at it now," a grinning holder said.`,
+    `${s.symbol}'s recovery has been one of the quieter success stories on the floor.`,
+    `"I kept my ${s.symbol} through the bad stretch. Feels good," one patient investor admitted.`,
+    `${s.name} has made believers out of some serious doubters over the past while.`,
+    `"${s.symbol} has had a hell of a run from where it was," a broker said, genuinely impressed.`,
+    `The people who held ${s.symbol} through the ugly period are the ones laughing now.`,
+    `${s.symbol} looked broken for a while. It wasn't. The patient ones knew.`
+  ]),
+  historical_down: (s)=>pick([
+    `${s.symbol} has given back a fair bit of ground from where it was trading recently.`,
+    `"It's come down a damn long way from where it was," one trader said.`,
+    `Compared to its recent levels, ${s.symbol} looks notably weaker today.`,
+    `Long-time watchers of ${s.symbol} have noticed it's lost some shine lately.`,
+    `${s.name} is well off the pace it was setting not too long ago.`,
+    `Some traders are pointing out how far ${s.symbol} has fallen from recent levels.`,
+    `"${s.symbol} just bled out from where it was — quietly and without a fuss," a broker noted.`,
+    `"Whoever bought ${s.symbol} at the top is not having a good time right now," someone said.`,
+    `${s.name} has done a slow, painful round trip in the wrong direction.`,
+    `"We've given back everything and then some on ${s.symbol}," one desk sighed.`,
+    `${s.symbol} was looking great a while back. The floor has a shorter memory than it should.`,
+    `"What happened to ${s.symbol}?" — asked by someone who hadn't checked in a while. Ouch.`,
+    `${s.name} has quietly become one of the floor's disappointments of the season.`
+  ]),
+  historical_flat: (s)=>pick([
+    `${s.symbol} is more or less back where it was trading a while back — full circle.`,
+    `Despite all the noise, ${s.symbol} hasn't really gone anywhere over the longer view.`,
+    `${s.name} has round-tripped — roughly back to where it started not long ago.`,
+    `Zoom out and ${s.symbol} hasn't moved as much as the daily chatter suggests.`,
+    `"${s.symbol} has been on a journey and ended up exactly where it started," a broker sighed.`,
+    `All that volatility in ${s.symbol}, and the net result is: roughly nothing.`,
+    `"We've been through hell with ${s.symbol} and broken even," a holder said. Philosophical.`,
+    `${s.name} has generated a lot of conversation and almost no net return.`,
+    `"Same price as before all the excitement. The Ledger has no sense of drama," one wag said.`,
+    `${s.symbol} has been a wild ride that arrived back at the station.`
+  ])
+};
+function buildChatter(s){
+  const ratio=s.price/(impliedValue(s)||s.base);
+  const valKey = ratio>1.15?'valuation_over':ratio<0.85?'valuation_under':'valuation_fair';
+  const mom=stockMomentum(s);
+  const momKey = mom>0.04?'momentum_up':mom<-0.04?'momentum_down':'momentum_flat';
+  const sd=state.sectors[s.sector]||{interest:0.5,confidence:0.5};
+  const healthPct=((sd.interest||0.5)+(sd.confidence||0.5))/2;
+  const secKey = healthPct>=0.6?'sector_favorable':healthPct<=0.4?'sector_pressured':'sector_neutral';
+  const chatter=[CHATTER_TEMPLATES[valKey](s), CHATTER_TEMPLATES[momKey](s), CHATTER_TEMPLATES[secKey](s)];
+  // Historical-reference line: compare current price to a random point from
+  // somewhere in the last 50 ticks — deliberately vague about *which* point,
+  // so it reads as "old-timer" chatter rather than a precise data callout.
+  const h=s.history||[];
+  if(h.length>=6){
+    const lookback=Math.min(50,h.length-1);
+    const idx=h.length-1-(1+Math.floor(Math.random()*lookback));
+    const past=h[Math.max(0,idx)];
+    const diff=(s.price-past)/(past||s.price);
+    const histKey = diff>0.05?'historical_up':diff<-0.05?'historical_down':'historical_flat';
+    chatter.push(CHATTER_TEMPLATES[histKey](s));
+  }
+  return chatter;
+}
+
+
+// News fires once every 12–48 ticks, chosen randomly each time
+let _nextNewsTick = 0;
+// Random market shocks (if enabled) fire roughly 1/8th as often as news — 96–384 ticks
+let _nextShockTick = 96 + Math.floor(Math.random()*289);
+
+function maybeFireAutoShock(){
+  if(!(state.settings&&state.settings.autoShocks))return;
+  if(state.tickCount < _nextShockTick) return;
+  _nextShockTick = state.tickCount + 96 + Math.floor(Math.random()*289);
+  triggerRandomShock(true);
+}
+
+function generateNews(){
+  // Only fire on the scheduled tick
+  if(state.tickCount < _nextNewsTick) return;
+  // Schedule next news event 12–48 ticks from now
+  _nextNewsTick = state.tickCount + 12 + Math.floor(Math.random()*37);
+
+  const e=state.economy;
+  const items=[];
+  const t=newsTime();
+  // Decide which category fires this issue (weighted)
+  const roll=Math.random();
+
+  if(roll<0.30){
+    // Economy / macro headline — also nudges the relevant dial a little further
+    // in the direction the headline describes, so news has real consequences.
+    if(e.growth>0.05){items.push({src:'economy',headline:NEWS_TEMPLATES.economy_up(e),time:t,type:'economy'});e.growth=clamp(e.growth+0.015,-0.5,0.5);}
+    else if(e.growth<-0.05){items.push({src:'economy',headline:NEWS_TEMPLATES.economy_down(e),time:t,type:'economy'});e.growth=clamp(e.growth-0.015,-0.5,0.5);}
+    else if(e.inflation>0.045){items.push({src:'economy',headline:NEWS_TEMPLATES.inflation_up(e),time:t,type:'economy'});e.inflation=clamp(e.inflation+0.003,0,0.08);}
+    else if(e.inflation<0.01){items.push({src:'economy',headline:NEWS_TEMPLATES.inflation_down(e),time:t,type:'economy'});e.inflation=clamp(e.inflation-0.003,0,0.08);}
+    else if(e.interestRates>0.06){items.push({src:'economy',headline:NEWS_TEMPLATES.rates_up(e),time:t,type:'economy'});e.interestRates=clamp(e.interestRates+0.0025,0,0.12);}
+    else if(e.interestRates<0.015){items.push({src:'economy',headline:NEWS_TEMPLATES.rates_down(e),time:t,type:'economy'});e.interestRates=clamp(e.interestRates-0.0025,0,0.12);}
+    else if(e.globalTrade>0.65){items.push({src:'trade',headline:NEWS_TEMPLATES.trade_up(e),time:t,type:'trade'});e.globalTrade=clamp(e.globalTrade+0.015,0,1);}
+    else if(e.globalTrade<0.35){items.push({src:'trade',headline:NEWS_TEMPLATES.trade_down(e),time:t,type:'trade'});e.globalTrade=clamp(e.globalTrade-0.015,0,1);}
+    else if(e.stability>0.7){items.push({src:'civic',headline:NEWS_TEMPLATES.stability_up(e),time:t,type:'civic'});e.stability=clamp(e.stability+0.015,0,1);}
+    else if(e.stability<0.35){items.push({src:'civic',headline:NEWS_TEMPLATES.stability_down(e),time:t,type:'civic'});e.stability=clamp(e.stability-0.015,0,1);}
+    else items.push({src:'economy',headline:NEWS_TEMPLATES.economy_up(e),time:t,type:'economy'});
+  } else if(roll<0.55){
+    // Sector headline — reinforces the sector's current offset a little, so a
+    // sector that's already running hot (or cold) gets a small extra push.
+    const sec=pick(SECTORS);
+    const sd=state.sectors[sec];
+    if(sd.confidence>0.6||sd.interest>0.6){
+      items.push({src:'sector',headline:NEWS_TEMPLATES.sector_up(sec),time:t,type:'sector',sector:sec});
+      sd.offset=clamp((sd.offset||0)+rand(0.01,0.03),-0.6,0.6);
+    } else if(sd.confidence<0.4||sd.interest<0.4){
+      items.push({src:'sector',headline:NEWS_TEMPLATES.sector_down(sec),time:t,type:'sector',sector:sec});
+      sd.offset=clamp((sd.offset||0)-rand(0.01,0.03),-0.6,0.6);
+    } else
+      items.push({src:'sector',headline:NEWS_TEMPLATES.sector_up(sec),time:t,type:'sector',sector:sec});
+  } else if(roll<0.85){
+    // Company headline — pick the biggest mover, and give it a small follow-through nudge
+    const movers=[...state.stocks].sort((a,b)=>Math.abs(b.change)-Math.abs(a.change));
+    const s=movers[Math.floor(Math.random()*3)];
+    if(s){
+      let hl;
+      if(s.change>1.5){hl=NEWS_TEMPLATES.company_up(s);s.growthOffset=clamp((s.growthOffset||0)+rand(0.01,0.025),-0.6,0.6);}
+      else if(s.change<-1.5){hl=NEWS_TEMPLATES.company_down(s);s.growthOffset=clamp((s.growthOffset||0)-rand(0.01,0.025),-0.6,0.6);}
+      else if((s.growthOffset||0)>0.03){hl=NEWS_TEMPLATES.company_debt_up(s);s.growthOffset=clamp(s.growthOffset+rand(0.005,0.015),-0.6,0.6);}
+      else if((s.growthOffset||0)<-0.03){hl=NEWS_TEMPLATES.company_debt_down(s);s.growthOffset=clamp(s.growthOffset-rand(0.005,0.015),-0.6,0.6);}
+      else {
+        const lcTpl=[NEWS_TEMPLATES.lc_startup,NEWS_TEMPLATES.lc_growth,NEWS_TEMPLATES.lc_mature,NEWS_TEMPLATES.lc_declining];
+        hl=pick(lcTpl)(s);
+        s.growthOffset=clamp((s.growthOffset||0)+rand(-0.01,0.01),-0.6,0.6);
+      }
+      items.push({src:'company',headline:hl,time:t,type:'company',symbol:s.symbol});
+    }
+  } else {
+    // Analyst report — richer format with target price and rating flavour
+    const s=pick(state.stocks);
+    const firm=pick(NEWS_SOURCES.analyst);
+    const ar=analystTargetRange(s);
+    const midTarget=Math.round((ar.lo+ar.hi)/2);
+    const rating=pick(['Outperform','Buy','Hold','Underperform','Strong Buy','Market Perform','Sell']);
+    const action=pick([
+      `Initiates coverage with ${rating} rating, target ${midTarget} shards`,
+      `Reiterates ${rating}, raises target to ${midTarget} shards`,
+      `Downgrades to ${rating}, cuts target to ${midTarget} shards`,
+      `Upgrades to ${rating}, target ${midTarget} shards`,
+      `Maintains ${rating}, adjusts target to ${midTarget} shards`,
+      `Places ${rating} on watch, cites ${s.sector} sector headwinds`,
+      `Resumes coverage with ${rating}, notes ${s.sector} tailwinds`,
+    ]);
+    const hl=`${firm}: ${s.symbol} — ${s.name} — ${action}`;
+    state.analysts.unshift({headline:hl,time:t,symbol:s.symbol,sector:s.sector});
+    if(state.analysts.length>30)state.analysts.pop();
+  }
+
+  if(items.length>0){
+    state.news.unshift(...items);
+    if(state.news.length>80)state.news=state.news.slice(0,80);
+  }
+}
+
+function addCompanyNews(s, type, headline){
+  const item={src:'event',headline,time:newsTime(),type,symbol:s.symbol};
+  state.news.unshift(item);
+  if(!s.news)s.news=[];
+  s.news.unshift(item);
+  if(s.news.length>8)s.news.pop();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DM CONTROLS
+// ═══════════════════════════════════════════════════════════
+function forceCyclePhase(phase){
+  // Algorithmic version: nudge the FMI toward a phase-typical level and bias
+  // the economy dials so the cosmetic Cycle/Economy pages match the injection.
+  const fmiTarget={expansion:104,boom:114,slowdown:97,recession:85,recovery:96};
+  const econTarget={
+    expansion: {growth:0.06, inflation:0.025,interestRates:0.035,globalTrade:0.58, stability:0.65},
+    boom:      {growth:0.16, inflation:0.04, interestRates:0.045,globalTrade:0.70, stability:0.72},
+    slowdown:  {growth:-0.02,inflation:0.035,interestRates:0.05, globalTrade:0.45, stability:0.52},
+    recession: {growth:-0.14,inflation:0.05, interestRates:0.065,globalTrade:0.30, stability:0.36},
+    recovery:  {growth:0.02, inflation:0.03, interestRates:0.04, globalTrade:0.48, stability:0.55},
+  };
+  if(fmiTarget[phase]!==undefined){
+    const delta=(fmiTarget[phase]-state.market.fmi)*0.5;
+    state.market.fmi=Math.max(15,+(state.market.fmi+delta).toFixed(2));
+  }
+  if(econTarget[phase]) Object.assign(state.economy, econTarget[phase]);
+  state.market.phase=phase;
+  state.market.regime = (phase==='boom'||phase==='expansion')?'bull':(phase==='recession'||phase==='slowdown')?'bear':'neutral';
+  const phaseNews={expansion:'📈 DM Injection: Economic expansion begins',boom:'🚀 DM Injection: Market enters boom phase',slowdown:'📉 DM Injection: Growth is slowing',recession:'🔴 DM Injection: Recession imposed by DM',recovery:'🌱 DM Injection: Recovery phase begins'};
+  state.news.unshift({src:'dm',headline:phaseNews[phase]||phase,time:newsTime(),type:'dm'});
+  commitToStorage(); refreshUI();
+}
+function triggerRandomShock(silent){
+  const isCrisis=Math.random()>0.45;
+  // Most shocks are minor jolts. Roughly 1-in-5 shocks (and shocks fire ~every
+  // 240 ticks) are "major" — works out to a >10pt move roughly once per 1000 ticks.
+  const isMajor=Math.random()<0.18;
+  const shockMagnitude=isMajor?+(10+Math.random()*8).toFixed(2):+(1+Math.random()*5).toFixed(2);
+  if(isCrisis){
+    state.market.fmi=Math.max(15,+(state.market.fmi*(1-shockMagnitude/100)).toFixed(2));
+    state.news.unshift({src:'event',headline:`⚡ MARKET SHOCK — Index drops ${shockMagnitude}% on sudden crisis`,time:newsTime(),type:'event'});
+    if(!silent)alert(`⚠️ SHOCK EVENT: Deep-roads collapse or regional embargo! SLI dropped by ${shockMagnitude}%`);
+  } else {
+    state.market.fmi=+(state.market.fmi*(1+shockMagnitude/100)).toFixed(2);
+    state.news.unshift({src:'event',headline:`⚡ MARKET SHOCK — Index surges ${shockMagnitude}% on windfall news`,time:newsTime(),type:'event'});
+    if(!silent)alert(`✨ SHOCK EVENT: Sovereign bullion reserve discovered! SLI raised by ${shockMagnitude}%`);
+  }
+  commitToStorage(); refreshUI();
+}
+function toggleAutoShocks(checked){
+  if(!state.settings)state.settings={};
+  state.settings.autoShocks=!!checked;
+  if(checked) _nextShockTick = state.tickCount + 96 + Math.floor(Math.random()*289);
+  commitToStorage();
+}
+function toggleDividends(checked){
+  if(!state.settings)state.settings={};
+  state.settings.dividendsEnabled=!!checked;
+  commitToStorage();
+}
+function nudgeEconomy(key,delta){
+  const limits={growth:[-0.5,0.5],inflation:[0,0.08],interestRates:[0,0.12],globalTrade:[0,1],stability:[0,1]};
+  const [lo,hi]=limits[key]||[0,1];
+  state.economy[key]=clamp((state.economy[key]||0)+delta,lo,hi);
+  commitToStorage(); refreshUI();
+}
+function adjustSectorSentiment(sec,delta){
+  if(!state.sectors[sec])return;
+  state.sectors[sec].offset=(state.sectors[sec].offset||0)+delta;
+  state.sectors[sec].confidence=clamp(state.sectors[sec].confidence+delta*0.6,0.05,0.95);
+  state.sectors[sec].interest=clamp(state.sectors[sec].interest+delta*0.6,0.05,0.95);
+  // Immediate partial price tick visualization, same as direct sector injection
+  state.stocks.forEach(stock=>{
+    if(stock.sector===sec){
+      const oldPrice=stock.price||stock.base;
+      stock.price=Math.max(0.5,+(stock.price*(1+delta)).toFixed(2));
+      stock.change=+(((stock.price-oldPrice)/oldPrice)*100).toFixed(2);
+      stock.marketCap=stock.price*stock.sharesOutstanding;
+    }
+  });
+  const src=delta>0?'DM Boost':'DM Stress';
+  state.news.unshift({src:'dm',headline:`${src}: ${sec} sector sentiment injected by DM`,time:newsTime(),type:'dm'});
+  updateRanks();
+  commitToStorage(); refreshUI();
+}
+function adjustStockFundamentals(sym,type,delta){
+  const s=state.stocks.find(st=>st.symbol===sym);
+  if(!s)return;
+  // Both 'sentiment' and 'revenue' injections feed the same decaying growthOffset,
+  // just at different magnitudes — sentiment is a lighter touch, revenue is sustained.
+  s.growthOffset=(s.growthOffset||0)+delta;
+  const oldPrice=s.price||s.base;
+  s.price=Math.max(0.5,+(s.price*(1+delta)).toFixed(2));
+  s.change=+(((s.price-oldPrice)/oldPrice)*100).toFixed(2);
+  s.marketCap=s.price*s.sharesOutstanding;
+  updateRanks();
+  commitToStorage(); refreshUI();
+}
+function triggerWorldEvent(id){
+  const ev=WORLD_EVENTS.find(e=>e.id===id);
+  if(!ev)return;
+  const fx=ev.effects;
+  SECTORS.forEach(sec=>{
+    if(!fx[sec])return;
+    const sf=fx[sec];
+    if(sf.sent!==undefined)adjustSectorSentiment(sec,sf.sent);
+    if(sf.conf!==undefined)state.sectors[sec].confidence=clamp(state.sectors[sec].confidence+sf.conf,0.05,0.95);
+    if(sf.rev!==undefined) state.stocks.filter(s=>s.sector===sec).forEach(s=>{s.growthOffset=(s.growthOffset||0)+sf.rev;});
+  });
+  if(fx.growth!==undefined)     state.economy.growth=clamp(state.economy.growth+fx.growth,-0.5,0.5);
+  if(fx.inflation!==undefined)  state.economy.inflation=clamp(state.economy.inflation+fx.inflation,0,0.15);
+  if(fx.globalTrade!==undefined)state.economy.globalTrade=clamp(state.economy.globalTrade+fx.globalTrade,0,1);
+  if(fx.stability!==undefined)  state.economy.stability=clamp(state.economy.stability+fx.stability,0,1);
+  if(fx.globalSentiment!==undefined) state.stocks.forEach(s=>{s.growthOffset=(s.growthOffset||0)+fx.globalSentiment;});
+  const evHL=ev.label.replace(/\p{Emoji}/gu,'').trim();
+  state.news.unshift({src:'event',headline:`⚡ WORLD EVENT — ${evHL}: ${ev.desc}`,time:newsTime(),type:'event'});
+  alert(`⚡ WORLD EVENT: ${ev.label}\n"${ev.desc}"\n\nEffects will ripple through the market over the next several ticks.`);
+  updateRanks();
+  commitToStorage(); refreshUI();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DISPLAY HELPERS (hide simulation internals)
+// ═══════════════════════════════════════════════════════════
+function qualityRating(vol){
+  // Lower historical volatility = higher "quality" rating
+  if(vol<=6) return'<span class="up">★★★★★</span>';
+  if(vol<=9) return'<span class="up">★★★★</span><span class="muted">★</span>';
+  if(vol<=12)return'<span style="color:var(--yellow);">★★★</span><span class="muted">★★</span>';
+  if(vol<=15)return'<span style="color:var(--yellow);">★★</span><span class="muted">★★★</span>';
+  return'<span class="down">★</span><span class="muted">★★★★</span>';
+}
+function combinedOffset(s){
+  return ((state.sectors[s.sector]||{}).offset||0) + (s.growthOffset||0);
+}
+function moodLabel(s){
+  const off=combinedOffset(s);
+  if(off>0.05) return '<span class="badge-mood-bullish">▲ Bullish</span>';
+  if(off<-0.05)return '<span class="badge-mood-bearish">▼ Bearish</span>';
+  return '<span class="badge-mood-neutral">— Neutral</span>';
+}
+function stockMomentum(s){
+  const h=s.history||[];
+  if(h.length<2)return 0;
+  const n=Math.min(5,h.length-1);
+  return (h[h.length-1]-h[h.length-1-n])/(h[h.length-1-n]||1);
+}
+function momentumLabel(s){
+  const mom=stockMomentum(s);
+  if(mom>0.04) return'<span class="up">↑ Uptrend</span>';
+  if(mom<-0.04)return'<span class="down">↓ Downtrend</span>';
+  return'<span class="muted">→ Sideways</span>';
+}
+function impliedValue(s){
+  // "Fair value" analogue for the algorithmic model: what the formula targets
+  // before this tick's random volatility component is applied.
+  const off=combinedOffset(s);
+  return s.base*(state.market.fmi/100)*(1+off);
+}
+function analystTargetRange(s){
+  // A range, not a point estimate — derived from implied value but with a
+  // built-in spread, so it can't be used to back out the exact formula output.
+  // Spread scales a bit with the asset's own volatility, but stays modest —
+  // except occasionally, when analysts simply can't agree on this one.
+  const iv=impliedValue(s);
+  let spread=rand(0.015,0.03)+(s.vol/180);
+  let noConsensus=false;
+  if(Math.random()<0.06){
+    spread*=rand(2.5,4.5);
+    noConsensus=true;
+  }
+  const lo=iv*(1-spread), hi=iv*(1+spread*rand(0.9,1.2));
+  return {lo:Math.max(0.5,lo), hi:Math.max(1,hi), noConsensus};
+}
+function analystTargetLabel(s){
+  const r=analystTargetRange(s);
+  const range=`${r.lo.toFixed(0)} – ${r.hi.toFixed(0)}`;
+  return r.noConsensus ? `${range} <span class="muted" style="font-size:0.7rem;">(no clear consensus)</span>` : range;
+}
+function econDisplayVal(key,v){
+  if(key==='growth')    return (v*100).toFixed(1)+'%';
+  if(key==='inflation') return (v*100).toFixed(1)+'%';
+  if(key==='interestRates') return (v*100).toFixed(1)+'%';
+  if(key==='globalTrade')  return (v*100).toFixed(0)+'%';
+  if(key==='stability')    return (v*100).toFixed(0)+'%';
+  return v;
+}
+function econGaugeColor(key,v){
+  if(key==='growth')    return v>=0?'var(--green)':'var(--red)';
+  if(key==='inflation') return v<0.02?'var(--green)':v<0.045?'var(--yellow)':'var(--red)';
+  if(key==='interestRates')return v<0.025?'var(--green)':v<0.05?'var(--yellow)':'var(--red)';
+  if(key==='globalTrade')  return v>0.5?'var(--green)':'var(--red)';
+  if(key==='stability')    return v>0.5?'var(--green)':'var(--red)';
+  return 'var(--text)';
+}
+function econStatus(key,v){
+  if(key==='growth')    return v>0.05?'Expanding':v<-0.05?'Contracting':'Stable';
+  if(key==='inflation') return v<0.012?'Low':v<0.035?'Moderate':v<0.055?'Elevated':'High';
+  if(key==='interestRates')return v<0.015?'Accommodative':v<0.04?'Neutral':v<0.065?'Elevated':'Restrictive';
+  if(key==='globalTrade')  return v>0.65?'Strong':v>0.45?'Moderate':'Weak';
+  if(key==='stability')    return v>0.65?'Stable':v>0.45?'Moderate':'Volatile';
+  return '';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RANKS
+// ═══════════════════════════════════════════════════════════
+function updateRanks(){
+  if(!state.stocks)return;
+  [...state.stocks].sort((a,b)=>(b.marketCap||0)-(a.marketCap||0)).forEach((s,i)=>{
+    s.prevRank=s.rank!==undefined?s.rank:i;
+    s.rank=i;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TRADING
+// ═══════════════════════════════════════════════════════════
+function executeTradeAction(profile,symbol,qty,action){
+  const s=state.stocks.find(st=>st.symbol===symbol);
+  if(!s||qty<=0)return;
+  const cost=s.price*qty;
+  if(action==='buy'){
+    profile.cash-=cost;
+    if(!profile.holdings[symbol])profile.holdings[symbol]={qty:0,avg:0};
+    const pc=profile.holdings[symbol].qty*profile.holdings[symbol].avg;
+    profile.holdings[symbol].qty+=qty;
+    profile.holdings[symbol].avg=(pc+cost)/profile.holdings[symbol].qty;
+    logLedger(profile.name,'BUY',symbol,qty,s.price,0,'');
+  } else {
+    const h=profile.holdings[symbol];
+    if(!h||h.qty<qty)return alert("Insufficient holdings for this sale.");
+    const profit=(s.price-h.avg)*qty;
+    profile.cash+=cost; h.qty-=qty;
+    profile.realized=(profile.realized||0)+profit;
+    if(h.qty<=0)delete profile.holdings[symbol];
+    logLedger(profile.name,'SELL',symbol,qty,s.price,profit,'');
+  }
+}
+function submitOrder(type){
+  if(state.activeIdx===-1)return;
+  const p=state.profiles[state.activeIdx];
+  const sym=document.getElementById('trade-asset').value;
+  const qty=parseInt(document.getElementById('trade-amount').value);
+  if(!qty||qty<=0)return alert("Specify valid quantity.");
+  if(type==='sell'&&(!p.holdings[sym]||p.holdings[sym].qty<qty))return alert("Insufficient holdings.");
+  executeTradeAction(p,sym,qty,type);
+  commitToStorage(); refreshUI();
+}
+function submitOrderMaxSpend(){
+  if(state.activeIdx===-1)return alert("Select an account first.");
+  const p=state.profiles[state.activeIdx];
+  const sym=document.getElementById('trade-asset').value;
+  const budget=parseFloat(document.getElementById('trade-spend-amount').value);
+  if(!budget||budget<=0)return alert("Enter a valid budget.");
+  const s=state.stocks.find(st=>st.symbol===sym);
+  if(!s)return;
+  const qty=Math.floor(budget/s.price);
+  if(qty<=0)return alert("Budget too small for 1 share.");
+  executeTradeAction(p,sym,qty,'buy');
+  document.getElementById('trade-spend-amount').value='';
+  commitToStorage(); refreshUI();
+}
+function portfolioSubmitOrder(type){
+  const sel=document.getElementById('portfolio-page-select');
+  const idx=parseInt(sel.value);
+  if(isNaN(idx)||!state.profiles[idx])return alert("Select an account.");
+  const p=state.profiles[idx];
+  const sym=document.getElementById('portfolio-trade-asset').value;
+  const qty=parseInt(document.getElementById('portfolio-trade-qty').value);
+  if(!qty||qty<=0)return alert("Specify valid quantity.");
+  if(type==='sell'&&(!p.holdings[sym]||p.holdings[sym].qty<qty))return alert("Insufficient holdings.");
+  executeTradeAction(p,sym,qty,type);
+  commitToStorage(); refreshUI();
+}
+function evaluateAutomation(){
+  if(!state.profiles)return;
+  state.profiles.forEach(p=>{
+    if(!p.rules)return;
+    state.stocks.forEach(s=>{
+      if(p.rules.buyDrop!=null&&s.change<=-p.rules.buyDrop) executeTradeAction(p,s.symbol,10,'buy');
+      if(p.rules.sellGain!=null&&p.holdings[s.symbol]){
+        const h=p.holdings[s.symbol];
+        if(((s.price-h.avg)/h.avg)*100>=p.rules.sellGain) executeTradeAction(p,s.symbol,h.qty,'sell');
+      }
+      // Auto-buy below an absolute price threshold for a specific stock
+      if(p.rules.buyBelow&&p.rules.buyBelow.symbol===s.symbol&&p.rules.buyBelow.price!=null
+         &&s.price<=p.rules.buyBelow.price&&p.rules.buyBelow.qty>0){
+        executeTradeAction(p,s.symbol,p.rules.buyBelow.qty,'buy');
+      }
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CLOCK
+// ═══════════════════════════════════════════════════════════
+function beginClock(){
+  updateTimerDisplay();
+  setInterval(()=>{
+    if(isPaused)return;
+    state.market.countdown--;
+    if(state.market.countdown<=0){processMarketTick();state.market.countdown=state.market.maxCountdown||5;}
+    updateTimerDisplay();
+  },1000);
+}
+function togglePause(){
+  isPaused=!isPaused;
+  const btn=document.getElementById('pause-btn');
+  if(!btn)return;
+  btn.innerText=isPaused?'▶':'⏸';
+  btn.style.color=isPaused?'var(--green)':'var(--accent)';
+  btn.style.borderColor=isPaused?'var(--green)':'var(--accent)';
+}
+function autoPauseOnTradeInput(){
+  const c=document.getElementById('auto-pause-checkbox');
+  if(c&&c.checked&&!isPaused)togglePause();
+}
+function updateTimerDisplay(){
+  const m=Math.floor((state.market.countdown||0)/60);
+  const s=(state.market.countdown||0)%60;
+  const el=document.getElementById('timer-val');
+  if(el)el.innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function applyDMTimerModifications(){
+  const c=parseInt(document.getElementById('dm-timer-current').value);
+  const d=parseInt(document.getElementById('dm-timer-max').value);
+  if(!isNaN(c)&&c>=0)state.market.countdown=c;
+  if(!isNaN(d)&&d>=2)state.market.maxCountdown=d;
+  updateTimerDisplay();
+  alert("Clock synchronized.");
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI RENDERING
+// ═══════════════════════════════════════════════════════════
+function showPage(id){
+  if(id==='news') id='economy'; // News is now merged into the Intelligence tab
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const tabs=document.querySelectorAll('.nav-tab');
+  tabs.forEach(t=>{if(t.getAttribute('onclick')===`showPage('${id}')`)t.classList.add('active');});
+  if(id==='economy'){renderEconomyPage();}
+  if(id==='portfolio'){renderPortfolioPage();}
+  if(id==='dm'){renderDMPage();}
+}
+
+function refreshUI(){
+  try{
+    if(!state||!state.stocks||state.stocks.length===0)return;
+    renderTicker();
+    renderMarketPage();
+    // refresh active tab passively
+    const activePage=document.querySelector('.page.active');
+    if(activePage){
+      const pid=activePage.id.replace('page-','');
+      if(pid==='economy')renderEconomyPage();
+      if(pid==='news')renderNewsPage();
+      if(pid==='portfolio')renderPortfolioPage();
+      if(pid==='dm')renderDMPage();
+    }
+  }catch(err){console.error('UI error:',err);}
+}
+
+function isOwned(symbol){
+  if(state.activeIdx===-1)return false;
+  const p=state.profiles[state.activeIdx];
+  if(!p||!p.holdings)return false;
+  const h=p.holdings[symbol];
+  return !!(h&&h.qty>0);
+}
+function renderTicker(){
+  const tc=state.stocks.map(s=>`
+    <span class="ticker-item">
+      <span class="muted" style="${isOwned(s.symbol)?'color:var(--accent);font-weight:600;':''}">${s.symbol}</span>
+      ${(s.price||0).toFixed(2)}
+      <span class="${(s.change||0)>=0?'up':'down'}">${(s.change||0)>=0?'▲':'▼'}${Math.abs(s.change||0)}%</span>
+    </span>`).join('');
+  const el=document.getElementById('ticker-target');
+  if(el)el.innerHTML=tc+tc;
+}
+
+function renderMarketPage(){
+  // Header metrics
+  const rel=(state.market.fmi||100)-100;
+  const fmiEl=document.getElementById('fmi-val');
+  if(fmiEl){fmiEl.innerText=(rel>=0?'+':'')+rel.toFixed(2);fmiEl.className='metric-val '+(rel>=0?'up':'down');}
+  const diff=state.market.fmi-state.market.lastFmi;
+  const pct=state.market.lastFmi?(diff/state.market.lastFmi)*100:0;
+  const fmiC=document.getElementById('fmi-change-val');
+  if(fmiC)fmiC.innerText=`${pct>=0?'+':''}${pct.toFixed(2)}% this tick`;
+
+  const total=state.stocks.reduce((a,s)=>a+(s.marketCap||0),0);
+  const mcapEl=document.getElementById('mcap-val');
+  if(mcapEl){
+    if(total>=1000000)mcapEl.innerText=(total/1000000).toFixed(1)+'M';
+    else mcapEl.innerText=(total/1000).toFixed(0)+'K';
+  }
+
+  const sorted=[...state.stocks].sort((a,b)=>(b.change||0)-(a.change||0));
+  const gE=document.getElementById('gainer-val'),lE=document.getElementById('loser-val');
+  if(gE&&sorted.length)gE.innerText=`${sorted[0].symbol}  +${sorted[0].change||0}%`;
+  if(lE&&sorted.length)lE.innerText=`${sorted[sorted.length-1].symbol}  ${sorted[sorted.length-1].change||0}%`;
+
+  const ups=state.stocks.filter(s=>s.change>0).length, downs=state.stocks.filter(s=>s.change<0).length;
+  const bE=document.getElementById('breadth-val'),bdE=document.getElementById('breadth-desc');
+  if(bE)bE.innerText=`${ups}↑  ${downs}↓`;
+  if(bdE)bdE.innerText=ups>downs?'Advancing':'Declining';
+
+  // Cycle phase card (derived from FMI trend)
+  const phase=state.market.phase||'expansion';
+  const regime=state.market.regime||'neutral';
+  const phaseColors={expansion:'var(--green)',boom:'var(--yellow)',slowdown:'var(--text-muted)',recession:'var(--red)',recovery:'var(--blue)'};
+  const phaseColor=phaseColors[phase]||'var(--text)';
+  const cpEl=document.getElementById('cycle-phase-val'), crEl=document.getElementById('cycle-regime-val');
+  if(cpEl){cpEl.innerText=phase.charAt(0).toUpperCase()+phase.slice(1);cpEl.style.color=phaseColor;}
+  const mom=Math.round(Math.abs(state.market.momentum||0));
+  const regimeLabel=regime==='bull'?`▲ Bull (mom. ${mom})`:regime==='bear'?`▼ Bear (mom. ${mom})`:'→ Neutral';
+  if(crEl){crEl.innerText=regimeLabel;crEl.className='metric-sub '+(regime==='bull'?'up':regime==='bear'?'down':'muted');}
+
+  // Sort indicators
+  ['rank','symbol','name','sector','price','marketCap','change'].forEach(k=>{
+    const el=document.getElementById('si-'+k);
+    if(el){el.innerText=currentSort.key===k?(currentSort.asc?'▲':'▼'):'';el.style.color=currentSort.key===k?'var(--accent)':'';}
+  });
+
+  // Build table
+  let ds=[...state.stocks];
+  if(state.activeIdx!==-1&&state.profiles[state.activeIdx]){
+    const ap=state.profiles[state.activeIdx];
+    ds.forEach(s=>{if(ap.holdings[s.symbol]&&ap.holdings[s.symbol].qty>0)s.pinned=true;});
+  }
+  ds.sort((a,b)=>{
+    if(a.pinned&&!b.pinned)return -1;
+    if(!a.pinned&&b.pinned)return 1;
+    const m=currentSort.asc?1:-1;
+    const k=currentSort.key;
+    if(['price','change','rank','marketCap'].includes(k))return((a[k]||0)-(b[k]||0))*m;
+    return((a[k]||'').toString()).localeCompare((b[k]||'').toString())*m;
+  });
+
+  let html='';
+  ds.forEach(s=>{
+    const detailOpen=openGraphs[s.symbol]?'table-row':'none';
+    const rd=(s.prevRank!==undefined)?(s.prevRank-s.rank):0;
+    const ri=rd>0?`<span class="up" style="font-size:0.72rem;">▲${rd}</span>`:rd<0?`<span class="down" style="font-size:0.72rem;">▼${Math.abs(rd)}</span>`:'<span class="muted" style="font-size:0.72rem;">–</span>';
+    const mcK=((s.marketCap||0)/1000).toFixed(1)+'K';
+    const pfr=s.price/(impliedValue(s)||s.base);
+    const vTag=pfr>1.3?'<span class="valuation-tag val-ov" title="Trading well above analyst targets">▲ OV</span>':pfr<0.75?'<span class="valuation-tag val-uv" title="Trading well below analyst targets">▼ UV</span>':'';
+    const off=combinedOffset(s);
+    const adjTag=Math.abs(off)>=0.02?`<span class="${off>0?'up':'down'}" style="font-size:0.75rem;margin-left:4px;" title="There's active chatter around this stock — check its detail panel">${off>0?'●':'●'}</span>`:'';
+    const isOpen=openGraphs[s.symbol];
+    const chevron=isOpen?'▲':'▼';
+    html+=`
+      <tr style="cursor:pointer;" onclick="toggleStockDetail('${s.symbol}')">
+        <td onclick="event.stopPropagation();togglePin('${s.symbol}')" style="text-align:center;cursor:pointer;user-select:none;opacity:${s.pinned?1:0.22};font-size:1rem;">${s.pinned?'📌':'📍'}</td>
+        <td><span class="muted" style="font-size:0.78rem;">#${s.rank!==undefined?s.rank+1:'—'}</span> ${ri}</td>
+        <td><strong style="${isOwned(s.symbol)?'color:var(--accent);':''}">${s.symbol}</strong></td>
+        <td class="muted" style="font-size:0.87rem;">${s.name}</td>
+        <td><span class="badge badge-sector" style="font-size:0.68rem;">${s.sector.split(' ')[0]}</span></td>
+        <td><strong>${(s.price||0).toFixed(2)}</strong> <span class="muted" style="font-size:0.78rem;">shards</span> ${vTag}${adjTag}</td>
+        <td class="muted" style="font-size:0.83rem;">${mcK}</td>
+        <td class="${(s.change||0)>=0?'up':'down'}" style="font-weight:600;">${(s.change||0)>=0?'+':''}${s.change||0}%</td>
+        <td style="text-align:right;color:var(--text-muted);font-size:0.75rem;" onclick="event.stopPropagation();">
+          <button onclick="setTradeAssetTarget('${s.symbol}')" style="padding:3px 7px;font-size:0.75rem; margin-right:4px;">Trade</button>
+          <span id="chev-${s.symbol}" style="cursor:pointer;opacity:0.5;" onclick="toggleStockDetail('${s.symbol}')">${chevron}</span>
+        </td>
+      </tr>
+      <tr id="chart-row-${s.symbol}" class="detail-row" style="display:${detailOpen};">
+        <td colspan="9">
+          <div class="detail-inner" id="detail-inner-${s.symbol}"></div>
+        </td>
+      </tr>`;
+  });
+  const tb=document.getElementById('market-body');
+  if(tb)tb.innerHTML=html;
+
+  // Restore any open detail panels after re-render
+  Object.keys(openGraphs).forEach(sym=>{
+    if(openGraphs[sym]) setTimeout(()=>buildInlineDetail(sym),10);
+  });
+
+  // Profile select
+  const sel=document.getElementById('profile-select');
+  if(sel)sel.innerHTML='<option value="-1">-- Select Account --</option>'+(state.profiles||[]).map((p,i)=>`<option value="${i}" ${i==state.activeIdx?'selected':''}>${p.name}</option>`).join('');
+
+  const ta=document.getElementById('trade-asset');
+  if(ta){
+    const prevTa=ta.value;
+    ta.innerHTML=state.stocks.map(s=>`<option value="${s.symbol}">${s.symbol} – ${s.name}</option>`).join('');
+    if(prevTa && ta.querySelector(`option[value="${prevTa}"]`)) ta.value=prevTa;
+  }
+
+  renderActiveProfile();
+}
+
+function renderEconomyPage(){
+  const e=state.economy;
+  const indicators=[
+    {key:'growth',       label:'Economic Growth',    desc:'Expansion vs contraction across the realm'},
+    {key:'inflation',    label:'Inflation',           desc:'Rate of price increase across goods & services'},
+    {key:'interestRates',label:'Interest Rates',      desc:'Cost of borrowing at guild banks'},
+    {key:'globalTrade',  label:'Global Trade',        desc:'Volume of commerce flowing across trade routes'},
+    {key:'stability',    label:'Political Stability', desc:'Confidence in city governance and law'}
+  ];
+  const indEl=document.getElementById('econ-indicators');
+  if(indEl){
+    indEl.innerHTML=indicators.map(({key,label,desc})=>{
+      const v=e[key]||0;
+      const color=econGaugeColor(key,v);
+      const status=econStatus(key,v);
+      let pct=key==='growth'?((v+0.5)*100):key==='inflation'?Math.min(100,v/0.08*100):key==='interestRates'?Math.min(100,v/0.12*100):(v*100);
+      return `<div class="econ-indicator">
+        <div class="ei-label">${label}</div>
+        <div class="ei-val" style="color:${color};">${econDisplayVal(key,v)}</div>
+        <div class="ei-desc">${status}</div>
+        <div class="gauge-bar"><div class="gauge-fill" style="width:${pct.toFixed(0)}%;background:${color};"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Main news feed — all dispatch types
+  const nfEl=document.getElementById('news-feed');
+  if(nfEl){
+    const all=state.news.slice(0,50);
+    nfEl.innerHTML=all.length?all.map(renderNewsItem).join(''):'<p class="muted" style="font-size:0.84rem; padding:12px 0;">No dispatches yet. The market is quiet.</p>';
+  }
+
+  // Analyst reports feed
+  const afEl=document.getElementById('analyst-feed');
+  if(afEl){
+    const items=(state.analysts||[]).slice(0,20).map(a=>{
+      const colon=a.headline.indexOf(':');
+      const srcLabel=colon>0?a.headline.substring(0,colon).trim():'Analyst';
+      const bodyText=colon>0?a.headline.substring(colon+1).trim():a.headline;
+      const color=SOURCE_COLORS[srcLabel]||'var(--purple)';
+      return `<div class="news-item"><div class="news-source" style="color:${color};display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0;"></span>${srcLabel}</div><div class="news-headline">${bodyText}</div><div class="news-time">${a.time||''}</div></div>`;
+    }).join('');
+    afEl.innerHTML=items||'<p class="muted" style="font-size:0.84rem;">No analyst reports yet.</p>';
+  }
+
+  // Sector conditions sidebar
+  const scEl=document.getElementById('sector-conditions');
+  if(scEl){
+    scEl.innerHTML=SECTORS.map(sec=>{
+      const sd=state.sectors[sec]||{};
+      const conf=sd.confidence||0.5;
+      const interest=sd.interest||0.5;
+      const color=conf>0.6&&interest>0.6?'var(--green)':conf<0.4||interest<0.4?'var(--red)':'var(--text-muted)';
+      const status=conf>0.6&&interest>0.6?'↑ Favorable':conf<0.4||interest<0.4?'↓ Pressured':'→ Neutral';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:0.8rem;">${sec}</span>
+        <span style="color:${color};font-size:0.78rem;font-weight:600;">${status}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderNewsPage(){ renderEconomyPage(); } // News is now merged into Intelligence
+
+
+const SOURCE_COLORS = {
+  'The Waterdeep Ledger':          '#d4af37', // gold
+  'The Dock Ward Gazette':         '#38bdf8', // cyan
+  'The Guild Chronicle':           '#a3e635', // yellow-green
+  'The City Financial Record':     '#fb923c', // orange
+  'The Merchant\'s Bulletin':     '#34d399', // emerald
+  'The North Ward Review':         '#e879f9', // magenta
+  'The Civic Report':              '#5eead4', // teal
+  'The Investor\'s Herald':       '#60a5fa', // blue
+  'The Trade & Commerce Review':   '#f9a8d4', // pink/rose
+  'Blackstaff Capital Research':   '#a78bfa', // purple
+  'Open Lord Analytics':           '#fb7185', // rose-red
+  'Deepwater Market Intelligence': '#818cf8', // indigo
+  'The Arcane Observer':           '#c084fc',
+  "The Adventurers' Post":       '#f59e0b',
+};
+function newsSourceColor(n){
+  if(n.type==='event'||n.type==='lifecycle') return 'var(--dm-accent)';
+  if(n.type==='dm') return 'var(--purple)';
+  // Try to extract source name from headline (format "Source: headline")
+  const colon=n.headline.indexOf(':');
+  if(colon>0){
+    const src=n.headline.substring(0,colon).trim();
+    if(SOURCE_COLORS[src]) return SOURCE_COLORS[src];
+  }
+  if(n.type==='sector') return 'var(--blue)';
+  if(n.type==='company') return 'var(--accent)';
+  return 'var(--text-muted)';
+}
+function renderNewsItem(n){
+  const color=newsSourceColor(n);
+  // Split source from headline text for display
+  const colon=n.headline.indexOf(':');
+  let srcLabel=n.src||'Market', bodyText=n.headline;
+  if(colon>0&&!n.headline.startsWith('⚡')){
+    srcLabel=n.headline.substring(0,colon).trim();
+    bodyText=n.headline.substring(colon+1).trim();
+  }
+  return `<div class="news-item">
+    <div class="news-source" style="color:${color}; display:flex; align-items:center; gap:5px;">
+      <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+      ${srcLabel}
+    </div>
+    <div class="news-headline">${bodyText}</div>
+    <div class="news-time">${n.time||''}</div>
+  </div>`;
+}
+
+function renderPortfolioPage(){
+  renderCoinExchange();
+  const sel=document.getElementById('portfolio-page-select');
+  if(!sel)return;
+  const prevVal=sel.value;
+  sel.innerHTML='<option value="-1">-- Select Account --</option>'+(state.profiles||[]).map((p,i)=>`<option value="${i}">${p.name}</option>`).join('');
+  // Restore previous selection (rebuilding innerHTML resets it otherwise)
+  if(prevVal!==undefined && prevVal!==null && sel.querySelector(`option[value="${prevVal}"]`)) sel.value=prevVal;
+
+  const ta=document.getElementById('portfolio-trade-asset');
+  if(ta){
+    const prevTa=ta.value;
+    ta.innerHTML=state.stocks.map(s=>`<option value="${s.symbol}">${s.symbol} – ${s.name}</option>`).join('');
+    if(prevTa && ta.querySelector(`option[value="${prevTa}"]`)) ta.value=prevTa;
+  }
+
+  const idx=parseInt(sel.value);
+  const content=document.getElementById('portfolio-page-content');
+  if(!content)return;
+  if(isNaN(idx)||idx<0||!state.profiles[idx]){
+    content.innerHTML='<p class="muted" style="font-size:0.85rem;">Select an account above.</p>';
+    return;
+  }
+  const p=state.profiles[idx];
+  let av=0,py=0,hHtml='';
+  if(p.holdings){
+    for(let k in p.holdings){
+      const s=state.stocks.find(st=>st.symbol===k);
+      if(!s)continue;
+      const h=p.holdings[k];
+      const val=h.qty*s.price;
+      av+=val; py+=val-h.qty*h.avg;
+      hHtml+=`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+        <div><strong>${k}</strong><span class="muted" style="font-size:0.8rem; margin-left:6px;">${h.qty} shares</span></div>
+        <div style="text-align:right;font-size:0.85rem;"><span class="muted">Avg ${h.avg.toFixed(2)}</span> → <span class="${s.price>=h.avg?'up':'down'}">${s.price.toFixed(2)}</span></div>
+      </div>`;
+    }
+  }
+  content.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;font-size:0.87rem;">
+      <div class="panel-sm"><div class="label">Cash Balance</div><strong>${(p.cash||0).toFixed(2)}</strong> shards</div>
+      <div class="panel-sm"><div class="label">Net Worth</div><strong>${((p.cash||0)+av).toFixed(2)}</strong> shards</div>
+      <div class="panel-sm"><div class="label">Realized P/L</div><span class="${(p.realized||0)>=0?'up':'down'}">${(p.realized||0).toFixed(2)}</span></div>
+      <div class="panel-sm"><div class="label">Unrealized P/L</div><span class="${py>=0?'up':'down'}">${py.toFixed(2)}</span></div>
+    </div>
+    <div class="label" style="margin-bottom:6px;">Holdings</div>
+    <div>${hHtml||'<p class="muted" style="font-size:0.84rem;">No positions.</p>'}</div>`;
+  renderAuditLedger();
+}
+function renderActiveProfile(){
+  const sel=document.getElementById('profile-select');
+  if(!sel)return;
+  const val=parseInt(sel.value);
+  state.activeIdx=isNaN(val)?-1:val;
+  const cont=document.getElementById('portfolio-view');
+  if(!cont)return;
+  if(state.activeIdx===-1||!state.profiles[state.activeIdx]){cont.style.display='none';return;}
+  cont.style.display='block';
+  const p=state.profiles[state.activeIdx];
+  document.getElementById('active-profile-title').innerText=p.name||'—';
+  document.getElementById('view-cash').innerText=(p.cash||0).toFixed(2);
+  document.getElementById('view-realized').innerText=(p.realized||0).toFixed(2);
+  let py=0,av=0,hHtml='';
+  if(p.holdings){for(let k in p.holdings){
+    const s=state.stocks.find(st=>st.symbol===k);
+    if(!s)continue;
+    const h=p.holdings[k];
+    const val=h.qty*s.price;
+    av+=val;py+=val-h.qty*h.avg;
+    hHtml+=`<div class="flex-between" style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
+      <span><strong>${k}</strong> (${h.qty}) <span class="muted" style="font-size:0.74rem;">@ ${h.avg.toFixed(2)}</span></span>
+      <span style="font-size:0.8rem;"><span class="${s.price>=h.avg?'up':'down'}">${s.price.toFixed(2)}</span></span>
+    </div>`;
+  }}
+  const nwE=document.getElementById('view-net'),urE=document.getElementById('view-unrealized');
+  if(nwE)nwE.innerText=((p.cash||0)+av).toFixed(2);
+  if(urE){urE.innerText=py.toFixed(2);urE.className=py>=0?'up':'down';}
+  const hb=document.getElementById('holdings-box');
+  if(hb)hb.innerHTML=hHtml||'<div class="muted">No positions.</div>';
+  const abE=document.getElementById('auto-buy-pct'),asE=document.getElementById('auto-sell-pct');
+  if(abE)abE.value=p.rules&&p.rules.buyDrop?p.rules.buyDrop:'';
+  if(asE)asE.value=p.rules&&p.rules.sellGain?p.rules.sellGain:'';
+
+  // Auto-Buy Below Price rule fields
+  const bbSelEl=document.getElementById('auto-buy-symbol');
+  if(bbSelEl){
+    const prev=bbSelEl.value;
+    bbSelEl.innerHTML=state.stocks.map(s=>`<option value="${s.symbol}">${s.symbol}</option>`).join('');
+    const wanted=(p.rules&&p.rules.buyBelow&&p.rules.buyBelow.symbol)||prev;
+    if(wanted&&bbSelEl.querySelector(`option[value="${wanted}"]`))bbSelEl.value=wanted;
+  }
+  const bbPriceEl=document.getElementById('auto-buy-price'), bbQtyEl=document.getElementById('auto-buy-qty');
+  if(bbPriceEl)bbPriceEl.value=(p.rules&&p.rules.buyBelow)?p.rules.buyBelow.price:'';
+  if(bbQtyEl)bbQtyEl.value=(p.rules&&p.rules.buyBelow)?p.rules.buyBelow.qty:5;
+
+  // Take-Profit projection: how much you'd realize per holding if the
+  // configured gain % triggers an auto-sell right now
+  const sgProjEl=document.getElementById('sell-gain-projection');
+  if(sgProjEl){
+    if(p.rules&&p.rules.sellGain!=null&&p.holdings){
+      const lines=[];
+      for(let k in p.holdings){
+        const h=p.holdings[k];
+        const targetPrice=h.avg*(1+p.rules.sellGain/100);
+        const profit=h.qty*(targetPrice-h.avg);
+        lines.push(`<div class="flex-between"><span class="muted">${k} @ ${targetPrice.toFixed(2)}</span><span class="${profit>=0?'up':'down'}">${profit>=0?'+':''}${profit.toFixed(2)}</span></div>`);
+      }
+      sgProjEl.innerHTML=lines.length?`<div class="muted" style="margin-top:2px;">If triggered:</div>${lines.join('')}`:'';
+    } else sgProjEl.innerHTML='';
+  }
+  drawSparkline(p.history||[]);
+}
+
+function renderDMPage(){
+  const tc=document.getElementById('dm-tick-count');
+  if(tc)tc.innerText=state.tickCount||0;
+  const asEl=document.getElementById('dm-auto-shocks');
+  if(asEl)asEl.checked=!!(state.settings&&state.settings.autoShocks);
+  const divEl=document.getElementById('dm-dividends');
+  if(divEl)divEl.checked=!!(state.settings&&state.settings.dividendsEnabled);
+  // Show cycle info in DM panel
+  const dmCycleEl=document.getElementById('dm-cycle-info');
+  if(dmCycleEl){
+    const phase=state.market.phase||'expansion';
+    const fmiRel=((state.market.fmi||100)-100).toFixed(2);
+    dmCycleEl.innerHTML=`Phase: <strong style="color:${phase==='recession'?'var(--red)':phase==='boom'?'var(--yellow)':'var(--green)'};">${phase}</strong> &nbsp;|&nbsp; SLI: ${fmiRel>=0?'+':''}${fmiRel} &nbsp;|&nbsp; Momentum: ${(state.market.momentum||0).toFixed(1)}`;
+  }
+  // Sector table
+  const sb=document.getElementById('dm-sector-body');
+  if(sb)sb.innerHTML=SECTORS.map(sec=>{
+    const sd=state.sectors[sec]||{};
+    const so=(sd.offset||0);
+    const conf=((sd.confidence||0.5)*100).toFixed(0);
+    const int2=((sd.interest||0.5)*100).toFixed(0);
+    return `<tr>
+      <td style="padding:4px 8px;"><strong style="font-size:0.8rem;">${sec}</strong></td>
+      <td style="padding:4px 8px;"><span class="${so>=0?'up':'down'}">${so>=0?'+':''}${(so*100).toFixed(1)}%</span> <span class="muted" style="font-size:0.72rem;">Int: ${int2}%</span></td>
+      <td style="padding:4px 8px;">${conf}%</td>
+      <td style="padding:4px 8px;text-align:right;">
+        <button onclick="adjustSectorSentiment('${sec}',0.15)" style="padding:1px 6px;font-size:0.72rem;color:var(--green);border-color:var(--green);margin-right:3px;">↑</button>
+        <button onclick="adjustSectorSentiment('${sec}',-0.15)" style="padding:1px 6px;font-size:0.72rem;color:var(--red);border-color:var(--red);">↓</button>
+      </td></tr>`;
+  }).join('');
+  // Stock table (DM sees analyst targets, not exact implied value)
+  const mb=document.getElementById('dm-market-body');
+  if(mb)mb.innerHTML=state.stocks.map(s=>{
+    const at=analystTargetLabel(s);
+    const off=combinedOffset(s);
+    const mood=off>0.05?'Bullish':off<-0.05?'Bearish':'Neutral';
+    const mc=off>0.05?'var(--green)':off<-0.05?'var(--red)':'var(--text-muted)';
+    return `<tr>
+      <td style="padding:4px 8px;"><strong>${s.symbol}</strong> <span class="muted" style="font-size:0.72rem;">(vol ${s.vol})</span></td>
+      <td style="padding:4px 8px;"><strong>${(s.price||0).toFixed(2)}</strong></td>
+      <td style="padding:4px 8px;" class="muted">${at}</td>
+      <td style="padding:4px 8px;color:${mc};">${mood}</td>
+      <td style="padding:4px 8px;text-align:right;">
+        <button onclick="adjustStockFundamentals('${s.symbol}','sentiment',0.08)" style="padding:1px 5px;font-size:0.7rem;color:var(--green);border-color:var(--green);margin-right:2px;">↑S</button>
+        <button onclick="adjustStockFundamentals('${s.symbol}','sentiment',-0.08)" style="padding:1px 5px;font-size:0.7rem;color:var(--red);border-color:var(--red);margin-right:2px;">↓S</button>
+        <button onclick="adjustStockFundamentals('${s.symbol}','revenue',0.15)" style="padding:1px 5px;font-size:0.7rem;color:var(--blue);border-color:var(--blue);margin-right:2px;">↑R</button>
+        <button onclick="adjustStockFundamentals('${s.symbol}','revenue',-0.15)" style="padding:1px 5px;font-size:0.7rem;color:var(--purple);border-color:var(--purple);">↓R</button>
+      </td></tr>`;
+  }).join('');
+}
+
+function buildEventGrid(){
+  const g=document.getElementById('event-grid');
+  if(!g)return;
+  g.innerHTML=WORLD_EVENTS.map(ev=>`<button class="event-btn" onclick="triggerWorldEvent('${ev.id}')">
+    ${ev.label}<span class="ev-desc">${ev.desc}</span>
+  </button>`).join('');
+}
+
+// Detail panel is now inline — see toggleStockDetail() and buildInlineDetail()
+
+// ═══════════════════════════════════════════════════════════
+//  INLINE CHART & SPARKLINE
+// ═══════════════════════════════════════════════════════════
+function toggleStockDetail(symbol){
+  openGraphs[symbol] = !openGraphs[symbol];
+  let row = document.getElementById('chart-row-'+symbol);
+  const chevEl = document.getElementById('chev-'+symbol);
+  if(row){
+    if(openGraphs[symbol]){
+      row.style.display='table-row';
+      if(chevEl) chevEl.innerText='▲';
+      buildInlineDetail(symbol);
+    } else {
+      row.style.display='none';
+      if(chevEl) chevEl.innerText='▼';
+    }
+  } else {
+    // Row not in DOM (after a full re-render); the next refreshUI will show it
+    // because openGraphs[symbol] is now set. Trigger a targeted re-render of
+    // just the market body without touching the timer or countdown.
+    renderMarketTableOnly();
+    if(openGraphs[symbol]) setTimeout(()=>buildInlineDetail(symbol), 30);
+  }
+}
+
+// Re-renders only the market table body and header metrics — does NOT touch the timer
+function renderMarketTableOnly(){
+  renderMarketPage();
+}
+
+function buildInlineDetail(symbol){
+  const s=state.stocks.find(st=>st.symbol===symbol);
+  const inner=document.getElementById('detail-inner-'+symbol);
+  if(!s||!inner)return;
+  const ratio=s.price/(impliedValue(s)||s.base);
+  const ar=analystTargetRange(s);
+  let valTag;
+  if(ar.noConsensus) valTag='<span style="color:var(--yellow);font-size:0.78rem;">⚠ No clear analyst consensus</span>';
+  else if(ratio>1.3) valTag='<span style="color:var(--red);font-size:0.78rem;">▲ Above analyst targets</span>';
+  else if(ratio<0.75) valTag='<span style="color:var(--green);font-size:0.78rem;">▼ Below analyst targets</span>';
+  else valTag='<span class="muted" style="font-size:0.78rem;">Near analyst consensus</span>';
+  const at=`${ar.lo.toFixed(0)} – ${ar.hi.toFixed(0)}`+(ar.noConsensus?' <span class="muted" style="font-size:0.7rem;">(no clear consensus)</span>':'');
+  const h=s.history||[];
+  const rangeLo=h.length?Math.min(...h):s.price, rangeHi=h.length?Math.max(...h):s.price;
+  const allNews=[...(s.news||[]),...state.news.filter(n=>n.sector===s.sector||n.symbol===s.symbol)].slice(0,5);
+  const chatter=buildChatter(s);
+  inner.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <span style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">${s.sector}</span>
+        <div style="font-size:1.1rem;font-weight:600;margin-top:2px;">${s.symbol} <span style="font-weight:400;color:var(--text-muted);">${s.name}</span></div>
+      </div>
+      <div style="text-align:right;">${valTag}</div>
+    </div>
+    <canvas id="canvas-${symbol}" width="900" height="80" style="width:100%;border:1px solid var(--border);border-radius:4px;background:var(--bg);margin-bottom:12px;"></canvas>
+    <div class="company-stat-grid">
+      <div class="company-stat"><div class="s-label">Market Cap</div><div class="s-val">${((s.marketCap||0)/1000).toFixed(1)}K <span class="muted" style="font-size:0.7rem;">(${(s.sharesOutstanding||0).toLocaleString()} shares)</span></div></div>
+      <div class="company-stat"><div class="s-label">Analyst Target</div><div class="s-val">${at} shards</div></div>
+      <div class="company-stat"><div class="s-label">Quality Rating</div><div class="s-val" style="font-size:0.9rem;">${qualityRating(s.vol)}</div></div>
+      <div class="company-stat"><div class="s-label">Market Mood</div><div class="s-val" style="font-size:0.88rem;">${moodLabel(s)}</div></div>
+      <div class="company-stat"><div class="s-label">Price Momentum</div><div class="s-val" style="font-size:0.88rem;">${momentumLabel(s)}</div></div>
+      <div class="company-stat"><div class="s-label">Recent Range</div><div class="s-val" style="font-size:0.88rem;">${rangeLo.toFixed(2)} – ${rangeHi.toFixed(2)}</div></div>
+    </div>
+    <div style="margin-top:6px; margin-bottom:14px;">
+      <div class="label" style="margin-bottom:6px;">Trading Floor Chatter</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        ${chatter.map(c=>`<p class="muted" style="font-size:0.82rem; margin:0; padding:6px 10px; background:var(--bg); border:1px solid var(--border); border-radius:4px;">${c}</p>`).join('')}
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <div class="label" style="margin-bottom:6px;">Recent Dispatches</div>
+      ${allNews.length?allNews.map(renderNewsItem).join(''):'<p class="muted" style="font-size:0.82rem;">No recent dispatches.</p>'}
+    </div>`;
+  // Draw chart now that canvas exists
+  setTimeout(()=>drawInlineDetailChart(symbol),30);
+}
+
+function drawInlineDetailChart(symbol){
+  const s=state.stocks.find(st=>st.symbol===symbol);
+  const canvas=document.getElementById('canvas-'+symbol);
+  if(!s||!canvas)return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const pts=s.history||[];
+  if(pts.length<2)return;
+  const mn=Math.min(...pts)*0.97,mx=Math.max(...pts)*1.03,rng=mx-mn||1;
+  // fill
+  ctx.beginPath();
+  pts.forEach((v,i)=>{const x=(i/(pts.length-1))*canvas.width;const y=canvas.height-((v-mn)/rng)*canvas.height;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.lineTo(canvas.width,canvas.height);ctx.lineTo(0,canvas.height);ctx.closePath();
+  ctx.fillStyle='rgba(212,175,55,0.05)';ctx.fill();
+  // line
+  ctx.beginPath();ctx.strokeStyle='rgba(212,175,55,0.75)';ctx.lineWidth=1.5;
+  pts.forEach((v,i)=>{const x=(i/(pts.length-1))*canvas.width;const y=canvas.height-((v-mn)/rng)*canvas.height;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.stroke();
+}
+
+function drawSparkline(pts){
+  const canvas=document.getElementById('sparkline');
+  if(!canvas||pts.length<2)return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const fl=Math.min(...pts)*0.99,ce=Math.max(...pts)*1.01,sp=ce-fl||1;
+  ctx.beginPath();ctx.strokeStyle='#d4af37';ctx.lineWidth=1.5;
+  pts.forEach((v,i)=>{const x=(i/(pts.length-1))*canvas.width;const y=canvas.height-((v-fl)/sp)*canvas.height;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LEDGER & HISTORY
+// ═══════════════════════════════════════════════════════════
+function logLedger(char,type,stock,qty,price,pl,note){
+  const time=new Date().toTimeString().split(' ')[0].substring(0,5);
+  if(!state.ledger)state.ledger=[];
+  state.ledger.push({time,char,type,stock,qty,price:(price||0).toFixed?+(price||0).toFixed(2):price,pl:pl||0,note:note||''});
+  if(state.ledger.length>120)state.ledger.shift();
+}
+function renderAuditLedger(){
+  const body=document.getElementById('ledger-target');
+  if(!body)return;
+  body.innerHTML=(state.ledger||[]).slice().reverse().map(l=>{
+    if(l.type==='BANKRUPTCY'||l.char==='MARKET EVENT'){
+      return`<tr style="background:rgba(248,113,113,0.05);">
+        <td class="muted" style="font-size:0.78rem;">${l.time}</td>
+        <td colspan="3" style="color:var(--red);font-size:0.78rem;">⚡ ${l.type} — ${l.stock}</td>
+        <td></td></tr>`;
+    }
+    return`<tr>
+      <td class="muted" style="font-size:0.78rem;">${l.time}</td>
+      <td style="font-size:0.8rem;">${l.char}</td>
+      <td style="font-weight:600;font-size:0.78rem;">${l.type}</td>
+      <td style="font-size:0.8rem;">${l.stock} ×${l.qty}</td>
+      <td class="${(l.pl||0)>=0?'up':'down'}" style="font-size:0.8rem;">${(l.pl||0)!==0?(l.pl||0).toFixed(2):'—'}</td>
+    </tr>`;
+  }).join('');
+}
+function appendHistorySnapshots(){
+  if(!state.profiles)return;
+  state.profiles.forEach(p=>{
+    let v=p.cash;
+    for(let k in p.holdings){const s=state.stocks.find(st=>st.symbol===k);if(s)v+=p.holdings[k].qty*s.price;}
+    if(!p.history)p.history=[];
+    p.history.push(v);
+    if(p.history.length>60)p.history.shift();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DIVIDENDS
+// ═══════════════════════════════════════════════════════════
+const DIVIDEND_YIELD = 0.02; // 2% of current share price, paid every 1000 ticks
+function payDividendsIfDue(){
+  if(!(state.settings&&state.settings.dividendsEnabled))return;
+  if(state.tickCount<=0||state.tickCount%1000!==0)return;
+  if(!state.profiles)return;
+  state.profiles.forEach(p=>{
+    if(!p.holdings)return;
+    let total=0;
+    for(let k in p.holdings){
+      const h=p.holdings[k];
+      const s=state.stocks.find(st=>st.symbol===k);
+      if(!s||!h.qty)continue;
+      const payout=+(s.price*h.qty*DIVIDEND_YIELD).toFixed(2);
+      if(payout<=0)continue;
+      p.cash=(p.cash||0)+payout;
+      total+=payout;
+      logLedger(p.name,'DIVIDEND',k,h.qty,s.price,payout,`${(DIVIDEND_YIELD*100).toFixed(1)}% yield`);
+    }
+    if(total>0){
+      state.news.unshift({src:'event',headline:`💰 Quarterly dividends distributed — ${p.name} received ${total.toFixed(2)} shards`,time:newsTime(),type:'dm'});
+    }
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════════
+//  COIN EXCHANGE
+// ═══════════════════════════════════════════════════════════
+const COIN_UNITS = [
+  {name:'Nib',        abbr:'cp',  nibs:1},
+  {name:'Shard',      abbr:'sp',  nibs:10},
+  {name:'Dragon',     abbr:'gp',  nibs:100},
+  {name:'Taol',       abbr:'2gp', nibs:200, regional:true},
+  {name:'Sun',        abbr:'pp',  nibs:1000},
+  {name:'Harbor Moon',abbr:'5pp', nibs:5000, regional:true}
+];
+function renderCoinExchange(){
+  const out=document.getElementById('coin-exchange-results');
+  if(!out)return;
+  const amtEl=document.getElementById('coin-amount'), unitEl=document.getElementById('coin-unit');
+  const amt=parseFloat(amtEl?.value)||0;
+  const unitNibs=parseFloat(unitEl?.value)||1;
+  const totalNibs=amt*unitNibs;
+  out.innerHTML=COIN_UNITS.map(u=>{
+    const val=totalNibs/u.nibs;
+    const disp=val>=100?val.toFixed(0):val>=1?val.toFixed(2):val.toFixed(4);
+    const isInputUnit=u.nibs===unitNibs;
+    return `<div class="flex-between" style="padding:3px 0; border-bottom:1px solid var(--border);${isInputUnit?'opacity:0.45;':''}">
+      <span class="muted">${u.name}${u.regional?' <span style="font-size:0.68rem;">(Wtdp)</span>':''}</span>
+      <strong>${disp}</strong>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MISC
+// ═══════════════════════════════════════════════════════════
+function handleSort(k){
+  if(currentSort.key===k)currentSort.asc=!currentSort.asc;
+  else{currentSort.key=k;currentSort.asc=true;}
+  refreshUI();
+}
+function togglePin(symbol){const s=state.stocks.find(st=>st.symbol===symbol);if(s){s.pinned=!s.pinned;commitToStorage();refreshUI();}}
+function setTradeAssetTarget(symbol){
+  const el=document.getElementById('trade-asset');
+  if(el)el.value=symbol;
+  // Switch to market page if needed and scroll portfolio into view
+  showPage('market');
+}
+function addMerchantProfile(){
+  const input=document.getElementById('profile-input');
+  const name=input.value.trim();
+  if(!name)return;
+  state.profiles.push({name,cash:0,holdings:{},realized:0,history:[0],rules:{buyDrop:null,sellGain:null}});
+  input.value='';
+  state.activeIdx=state.profiles.length-1;
+  commitToStorage();refreshUI();
+}
+function commitRules(){
+  if(state.activeIdx===-1)return;
+  const p=state.profiles[state.activeIdx];
+  if(!p)return;
+  const buy=parseFloat(document.getElementById('auto-buy-pct').value);
+  const sell=parseFloat(document.getElementById('auto-sell-pct').value);
+  const bbSym=document.getElementById('auto-buy-symbol').value;
+  const bbPrice=parseFloat(document.getElementById('auto-buy-price').value);
+  const bbQty=parseFloat(document.getElementById('auto-buy-qty').value);
+  if(!p.rules)p.rules={};
+  p.rules.buyDrop=isNaN(buy)?null:buy;
+  p.rules.sellGain=isNaN(sell)?null:sell;
+  p.rules.buyBelow=(!isNaN(bbPrice)&&bbPrice>0)?{symbol:bbSym,price:bbPrice,qty:(isNaN(bbQty)||bbQty<=0)?5:bbQty}:null;
+  commitToStorage();alert("Automation rules updated.");
+}
+function commitToStorage(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
+function saveManualCheckpoint(){localStorage.setItem(SNAPSHOT_KEY,JSON.stringify(state));alert("Snapshot saved.");}
+function loadManualCheckpoint(){
+  const snap=localStorage.getItem(SNAPSHOT_KEY);
+  if(!snap)return alert("No snapshot found.");
+  if(confirm("Restore from snapshot? Current state will be overwritten.")){
+    try{state=JSON.parse(snap);commitToStorage();refreshUI();}catch(e){alert("Snapshot corrupt.");}
+  }
+}
+function exportToFile(){
+  const a=document.createElement('a');
+  a.href="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(state));
+  a.download='slgr_market_v3.json';
+  document.body.appendChild(a);a.click();a.remove();
+}
+function importFromFile(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      state=JSON.parse(e.target.result);
+      migrateState();
+      commitToStorage();refreshUI();
+      alert("Ledger imported successfully.");
+    }catch(err){alert("File corrupt or unreadable.");}
+  };
+  reader.readAsText(file);
+}
+const profileSel=document.getElementById('profile-select');
+if(profileSel)profileSel.addEventListener('change',renderActiveProfile);
+window.onload=()=>{initExchange();};
+</script>
+</body>
+</html>
